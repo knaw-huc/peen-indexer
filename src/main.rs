@@ -1,8 +1,9 @@
 use annorepo_client::AnnoRepoClient;
 use reqwest::header::HeaderMap;
 use reqwest::ClientBuilder;
-use serde_json::Value::Bool;
+use serde_json::Value::{Array, Bool};
 use serde_json_path::JsonPath;
+use std::collections::HashMap;
 use std::error::Error;
 
 const ANNOREPO_BASE: &'static str = "https://annorepo.suriano.huygens.knaw.nl";
@@ -51,10 +52,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
     // assert_eq!(l, &about["appName"]);
     // assert_eq!(&about["appName"], about.get("appName").unwrap());
 
+    if let Array(dates) = client.get_distinct_values("body.metadata.date").await? {
+        println!("distinct body.metadata.date count: {}", dates.len());
+    }
+
     let fields = client.get_fields().await?;
-    println!("fields: {:?}", fields);
+    let keys = fields.as_object().unwrap().keys();
+    keys.for_each(|f| println!("field: {}", f));
 
     let indexes = client.get_indexes().await?;
     println!("\nindexes: {:?}", indexes);
+
+    let query = HashMap::from([("body.type", "letter")]);
+    let res = client.search(query).await?;
+    println!("main: res={:?}", res);
     Ok(())
 }
