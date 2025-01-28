@@ -1,6 +1,7 @@
 use annorepo_client::AnnoRepoClient;
 use reqwest::header::HeaderMap;
 use reqwest::ClientBuilder;
+use serde_json::Value::Bool;
 use serde_json_path::JsonPath;
 use std::error::Error;
 
@@ -36,17 +37,24 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let label = path.query(&json).exactly_one()?;
     println!("{} -> {}", path, label);
 
-    let annoclient = AnnoRepoClient::new(ANNOREPO_BASE, ANNOREPO_CONTAINER).unwrap();
+    let client = AnnoRepoClient::new(ANNOREPO_BASE, ANNOREPO_CONTAINER).unwrap();
 
-    match annoclient.get_about().await {
-        Ok(text) => println!("text: {:?}", text),
-        Err(err) => println!("err: {:?}", err),
+    let about = client.get_about().await?;
+    println!("about: {:?}", about);
+    println!("auth: {}", about["withAuthentication"]);
+    if let Bool(b) = about["withAuthentication"] {
+        println!("bool: {}", b);
     }
+    // let p = JsonPath::parse("$.appName")?;
+    // let l = p.query(&about).exactly_one()?;
+    // println!("appName: {} ?== {}", l, about.get("appName").unwrap());
+    // assert_eq!(l, &about["appName"]);
+    // assert_eq!(&about["appName"], about.get("appName").unwrap());
 
-    let fields = annoclient.get_fields().await?;
+    let fields = client.get_fields().await?;
     println!("fields: {:?}", fields);
 
-    let indexes = annoclient.get_indexes().await?;
+    let indexes = client.get_indexes().await?;
     println!("\nindexes: {:?}", indexes);
     Ok(())
 }
