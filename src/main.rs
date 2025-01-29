@@ -1,6 +1,7 @@
 use annorepo_client::AnnoRepoClient;
 use reqwest::header::HeaderMap;
 use reqwest::ClientBuilder;
+use serde_json::Value;
 use serde_json::Value::{Array, Bool};
 use serde_json_path::JsonPath;
 use std::collections::HashMap;
@@ -68,21 +69,30 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let query = HashMap::from([("body.type", "LetterBody")]);
     let search_info = client.create_search(query).await?;
+    let search_id = search_info.search_id();
     println!(
         "main: location={:?}, search_id={}",
         search_info.location(),
-        search_info.search_id()
+        &search_id
     );
 
     let info = client
-        .read_search_info(&ANNOREPO_CONTAINER, search_info.search_id())
+        .read_search_info(&ANNOREPO_CONTAINER, &search_id)
         .await?;
     println!("info: {}", info);
 
     let json = client
-        .read_search_result_page(&ANNOREPO_CONTAINER, search_info.search_id(), None)
+        .read_search_result_page(&ANNOREPO_CONTAINER, &search_id, None)
         .await?;
     println!("json: {}", json);
 
+    client
+        .foreach_search_result_annotation(&ANNOREPO_CONTAINER, &search_id, None, &handle_anno)
+        .await?;
+
     Ok(())
+}
+
+fn handle_anno(anno: &Value) {
+    println!("handle_anno: {}", anno);
 }
