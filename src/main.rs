@@ -73,5 +73,10 @@ async fn main() -> Result<(), Box<dyn Error>> {
         search_info.location(),
         search_info.search_id()
     );
+
+    let json = client
+        .read_search_result_page(&ANNOREPO_CONTAINER, search_info.search_id(), None)
+        .await?;
+    println!("json: {}", json);
     Ok(())
 }
