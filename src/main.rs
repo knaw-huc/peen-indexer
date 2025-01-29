@@ -56,15 +56,22 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("distinct body.metadata.date count: {}", dates.len());
     }
 
-    let fields = client.get_fields().await?;
-    let keys = fields.as_object().unwrap().keys();
-    keys.for_each(|f| println!("field: {}", f));
+    let body_types = client.get_distinct_values("body.type").await?;
+    println!("distinct body.types: {:?}", body_types);
+
+    // let fields = client.get_fields().await?;
+    // let keys = fields.as_object().unwrap().keys();
+    // keys.for_each(|f| println!("field: {}", f));
 
     let indexes = client.get_indexes().await?;
     println!("\nindexes: {:?}", indexes);
 
-    let query = HashMap::from([("body.type", "letter")]);
-    let res = client.search(query).await?;
-    println!("main: res={:?}", res);
+    let query = HashMap::from([("body.type", "LetterBody")]);
+    let search_info = client.create_search(query).await?;
+    println!(
+        "main: location={:?}, search_id={}",
+        search_info.location(),
+        search_info.search_id()
+    );
     Ok(())
 }
