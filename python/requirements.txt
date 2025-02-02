@@ -1,0 +1,5 @@
+annorepo-client
+elasticsearch
+jsonpickle
+requests
+tqdm
