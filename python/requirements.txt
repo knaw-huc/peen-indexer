@@ -1,5 +1,6 @@
 annorepo-client
 elasticsearch
 jsonpickle
+pyyaml
 requests
 tqdm

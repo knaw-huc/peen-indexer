@@ -1,19 +1,14 @@
-import collections
-import gzip
-import logging
 import os
-import traceback
+import yaml
 from pathlib import Path
 
-import jsonpickle
 import requests
-from annorepo.client import AnnoRepoClient, ContainerAdapter, SearchInfo
+from annorepo.client import AnnoRepoClient, ContainerAdapter
 from elasticsearch import Elasticsearch
 from tqdm import tqdm
 
 from SearchResultAdapter import SearchResultAdapter
 from SearchResultItem import SearchResultItem
-#from SparseList import SparseList
 
 MAPPING_FILE='mapping.json'
 
@@ -84,18 +79,7 @@ def store_document(elastic:Elasticsearch, index: str, doc:dict[str,any]) -> None
         print(f'Indexing {doc_id} failed: {resp}')
 
 
-def index_suriano(container:ContainerAdapter, elastic:Elasticsearch, index:str, query: Query) -> None:
-    fields = {
-        'bodyType': 'body.type',
-        'date': 'body.metadata.date',
-        'editorNotes': 'body.metadata.editorNotes',
-        'recipient': 'body.metadata.recipient',
-        'recipientLoc': 'body.metadata.recipientLoc',
-        'sender': 'body.metadata.sender',
-        'senderLoc': 'body.metadata.senderLoc',
-        'shelfmark': 'body.metadata.shelfmark',
-        'summary': 'body.metadata.summary',
-    }
+def index_suriano(container:ContainerAdapter, elastic:Elasticsearch, index:str, query: Query, fields: dict[str, str]) -> None:
     top_tier_anno_search: SearchResultAdapter = SearchResultAdapter(container, query)
     for anno in top_tier_anno_search.items():
         doc = dict()
@@ -111,7 +95,7 @@ def index_overlapping_annotations(container: ContainerAdapter, anno: SearchResul
         print(f'i: {i}')
 
 
-def main(ar_host: str, ar_container: str, es_host: str, es_index: str) -> None:
+def main(ar_host: str, ar_container: str, es_host: str, es_index: str, conf: any) -> None:
     print(f'Indexing {ar_host}/{ar_container} to {es_host}/{es_index}')
     annorepo = AnnoRepoClient(ar_host)
     container = annorepo.container_adapter(ar_container)
@@ -121,7 +105,7 @@ def main(ar_host: str, ar_container: str, es_host: str, es_index: str) -> None:
     print(elastic.info())
     reset_index(elastic, es_index, MAPPING_FILE)
 
-    index_suriano(container, elastic, es_index, {"body.type": "LetterBody"})
+    index_suriano(container, elastic, es_index, {"body.type": "LetterBody"}, conf["fields"])
 
 
 if __name__ == "__main__":
@@ -135,5 +119,10 @@ if __name__ == "__main__":
                         default='http://localhost:9200', help='the ElasticSearch host name')
     parser.add_argument('--elastic-index', metavar='path', required=True,
                         help='the ElasticSearch index name')
-    args=parser.parse_args()
-    main(args.annorepo_host, args.annorepo_container, args.elastic_host, args.elastic_index)
+    parser.add_argument('--config', metavar='path', required=False,
+                        default='config.yml', help='configuration file')
+    args = parser.parse_args()
+
+    with open(args.config, 'r') as file:
+        config = yaml.safe_load(file)
+        main(args.annorepo_host, args.annorepo_container, args.elastic_host, args.elastic_index, config)
