@@ -64,7 +64,27 @@ def fetch_overlapping_annotations(container: ContainerAdapter, item: SearchResul
     print(f'item_annos: {item_annos}')
     return item_annos
 
-def index_suriano(container:ContainerAdapter, elastic:Elasticsearch, query: Query) -> None:
+
+def fetch_top_tier_text(anno: SearchResultItem):
+    text_target = anno.first_target_without_selector('LogicalText')
+    r = requests.get(text_target['source'])
+    if r.status_code == 200:
+        return r.json()
+    else:
+        print(f'Failed to get text for: {anno.path('body.id')}')
+        return {}
+
+
+def store_document(elastic:Elasticsearch, index: str, doc:dict[str,any]) -> None:
+    doc_id = doc['id']
+    resp = elastic.index(index=index, id=doc_id, document=doc)
+    if resp['result'] == 'created':
+        print(f'Indexed {doc_id}: {doc}')
+    else:
+        print(f'Indexing {doc_id} failed: {resp}')
+
+
+def index_suriano(container:ContainerAdapter, elastic:Elasticsearch, index:str, query: Query) -> None:
     fields = {
         'bodyType': 'body.type',
         'date': 'body.metadata.date',
@@ -80,17 +100,18 @@ def index_suriano(container:ContainerAdapter, elastic:Elasticsearch, query: Quer
     for anno in top_tier_anno_search.items():
         doc = dict()
         doc['id'] = anno.path('body.id')
+        doc['text'] = "".join(fetch_top_tier_text(anno))  # join separator?
         for es_field, path in fields.items():
             doc[es_field] = anno.path(path)
-        print(f'doc: {doc}')
+        store_document(elastic, index, doc)
 
-def index_overlapping_annotations(anno, container):
+def index_overlapping_annotations(container: ContainerAdapter, anno: SearchResultItem):
     overlapping_annos = fetch_overlapping_annotations(container, anno, ['tf:Ent'])
     for i in overlapping_annos['tf:Ent']:
         print(f'i: {i}')
 
 
-def main(ar_host: str, ar_container: str, es_host: str, es_index) -> None:
+def main(ar_host: str, ar_container: str, es_host: str, es_index: str) -> None:
     print(f'Indexing {ar_host}/{ar_container} to {es_host}/{es_index}')
     annorepo = AnnoRepoClient(ar_host)
     container = annorepo.container_adapter(ar_container)
@@ -100,7 +121,7 @@ def main(ar_host: str, ar_container: str, es_host: str, es_index) -> None:
     print(elastic.info())
     reset_index(elastic, es_index, MAPPING_FILE)
 
-    index_suriano(container, elastic, {"body.type": "LetterBody"})
+    index_suriano(container, elastic, es_index, {"body.type": "LetterBody"})
 
 
 if __name__ == "__main__":
