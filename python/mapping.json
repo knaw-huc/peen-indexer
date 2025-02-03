@@ -1,0 +1,57 @@
+{
+  "mappings": {
+    "properties": {
+      "bodyType": {
+        "type": "keyword"
+      },
+      "date": {
+        "type": "date"
+      },
+      "editorNotes": {
+        "type": "keyword"
+      },
+      "recipient": {
+        "type": "keyword"
+      },
+      "recipientLoc": {
+        "type": "keyword"
+      },
+      "sender": {
+        "type": "keyword"
+      },
+      "senderLoc": {
+        "type": "keyword"
+      },
+      "shelfmark": {
+        "type": "keyword"
+      },
+      "summary": {
+        "type": "text"
+      },
+      "text": {
+        "type": "text",
+        "fields": {
+          "tokenCount": {
+            "type": "token_count",
+            "analyzer": "fulltext_analyzer"
+          }
+        },
+        "index_options": "offsets",
+        "analyzer": "fulltext_analyzer"
+      }
+    }
+  },
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "fulltext_analyzer": {
+          "filter": [
+            "lowercase"
+          ],
+          "type": "custom",
+          "tokenizer": "standard"
+        }
+      }
+    }
+  }
+}
