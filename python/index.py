@@ -28,14 +28,66 @@ def reset_index(elastic: Elasticsearch, index_name: str, path: str | os.PathLike
     print(f'Creating ES index: {index_name} using mapping from {mapping_path}')
     elastic.indices.create(index=index_name, body=mapping_path.read_text())
 
+def build_overlapping_types_query(item: SearchResultItem, types: list[str]) -> dict[str, any]:
+    target = item.first_target_with_selector('Text')
+    selector = target['selector']
+    return {"body.type": {":isIn": types},
+            ":overlapsWithTextAnchorRange": {
+                "source": target['source'],
+                "start": selector['start'],
+                "end": selector['end']
+            }}
+
+def fetch_overlapping_annotations(container: ContainerAdapter, item: SearchResultItem, types: list[str]) \
+        -> dict[str, list[SearchResultItem]]:
+    query = build_overlapping_types_query(item, types)
+
+    item_annos = dict()
+    for t in types:
+        item_annos[t] = list()
+
+    overlapping_anno_search = SearchResultAdapter(container, query)
+    print(query)
+    print(overlapping_anno_search.search_info)
+
+    anno_count = 0
+    # pbar = tqdm(overlapping_anno_search.items(), total=overlapping_anno_search.hits(), colour='blue', leave=True,
+    #             unit="ann", bar_format=tqdm_bar_format)
+    for anno in overlapping_anno_search.items():
+        # pbar.set_description(f'ann: {anno.path('body.id')[13:-37]:>60}')
+        item_annos[anno.path('body.type')].append(anno)
+        anno_count += 1
+
+    # AnnoRepo now uses a MongoDB Cursor and has no support for upfront 'size' counting anymore
+    # assert anno_count == overlapping_anno_search.hits()
+
+    print(f'item_annos: {item_annos}')
+    return item_annos
 
 def index_suriano(container:ContainerAdapter, elastic:Elasticsearch, query: Query) -> None:
+    fields = {
+        'bodyType': 'body.type',
+        'date': 'body.metadata.date',
+        'editorNotes': 'body.metadata.editorNotes',
+        'recipient': 'body.metadata.recipient',
+        'recipientLoc': 'body.metadata.recipientLoc',
+        'sender': 'body.metadata.sender',
+        'senderLoc': 'body.metadata.senderLoc',
+        'shelfmark': 'body.metadata.shelfmark',
+        'summary': 'body.metadata.summary',
+    }
     top_tier_anno_search: SearchResultAdapter = SearchResultAdapter(container, query)
-    count = 0
     for anno in top_tier_anno_search.items():
-        print(f'annoId: {anno.path('body.id')}')
-        count += 1
-    print(f'Total of {count} top tier annos')
+        doc = dict()
+        doc['id'] = anno.path('body.id')
+        for es_field, path in fields.items():
+            doc[es_field] = anno.path(path)
+        print(f'doc: {doc}')
+
+def index_overlapping_annotations(anno, container):
+    overlapping_annos = fetch_overlapping_annotations(container, anno, ['tf:Ent'])
+    for i in overlapping_annos['tf:Ent']:
+        print(f'i: {i}')
 
 
 def main(ar_host: str, ar_container: str, es_host: str, es_index) -> None:
