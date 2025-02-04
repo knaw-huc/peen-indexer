@@ -1,11 +1,12 @@
 import os
-import yaml
-from pathlib import Path
+import sys
 
+import yaml
+from loguru import logger
+from pathlib import Path
 import requests
 from annorepo.client import AnnoRepoClient, ContainerAdapter
-from elasticsearch import Elasticsearch
-from tqdm import tqdm
+from elasticsearch import Elasticsearch, ApiError
 
 from SearchResultAdapter import SearchResultAdapter
 from SearchResultItem import SearchResultItem
@@ -17,12 +18,33 @@ type Query = dict[str, str]
 
 def reset_index(elastic: Elasticsearch, index_name: str, path: str | os.PathLike) -> None:
     if elastic.indices.exists(index=index_name):
-        print(f'Deleting ES index: {index_name}')
-        elastic.indices.delete(index=index_name)
+        logger.trace('Deleting ES index {index_name}', index_name=index_name)
+        try:
+            res = elastic.indices.delete(index=index_name)
+            logger.success('Deleted ES index {}: {}', index_name, res)
+        except ApiError as err:
+            logger.critical(err)
+            sys.exit(-1)
 
     mapping_path = Path(path)
-    print(f'Creating ES index: {index_name} using mapping from {mapping_path}')
-    elastic.indices.create(index=index_name, body=mapping_path.read_text())
+    logger.trace('Creating ES index {} using mapping file: {}', index_name, mapping_path)
+    try:
+        res = elastic.indices.create(index=index_name, body=mapping_path.read_text())
+        logger.success('Created ES index {}: {}', index_name, res)
+    except ApiError as err:
+        logger.critical(err)
+        sys.exit(-2)
+
+
+def store_document(elastic: Elasticsearch, index: str, doc: dict[str, any]) -> None:
+    doc_id = doc['id']
+    resp = elastic.index(index=index, id=doc_id, document=doc)
+    logger.trace(resp)
+    if resp['result'] == 'created':
+        logger.success('Indexed {}: {:>3} entities', doc_id, len(doc.get('entityNames', [])))
+    else:
+        logger.critical('Indexing {} failed: {}', doc_id, resp)
+        sys.exit(-3)
 
 
 def build_overlapping_types_query(item: SearchResultItem, types: list[str]) -> dict[str, any]:
@@ -47,37 +69,21 @@ def fetch_overlapping_annotations(container: ContainerAdapter, item: SearchResul
     overlapping_anno_search = SearchResultAdapter(container, query)
 
     anno_count = 0
-    # pbar = tqdm(overlapping_anno_search.items(), total=overlapping_anno_search.hits(), colour='blue', leave=True,
-    #             unit="ann", bar_format=tqdm_bar_format)
     for anno in overlapping_anno_search.items():
-        # pbar.set_description(f'ann: {anno.path('body.id')[13:-37]:>60}')
         item_annos[anno.path('body.type')].append(anno)
         anno_count += 1
 
-    # AnnoRepo now uses a MongoDB Cursor and has no support for upfront 'size' counting anymore
-    # assert anno_count == overlapping_anno_search.hits()
-
-    # print(f'item_annos: {item_annos}')
     return item_annos
 
 
 def fetch_top_tier_text(anno: SearchResultItem):
     text_target = anno.first_target_without_selector('LogicalText')
-    r = requests.get(text_target['source'])
-    if r.status_code == 200:
-        return r.json()
+    resp = requests.get(text_target['source'])
+    if resp.status_code == 200:
+        return resp.json()
     else:
-        print(f'Failed to get text for: {anno.path('body.id')}')
+        logger.warning('Failed to get text for {}: {}', anno.path('body.id'), resp)
         return {}
-
-
-def store_document(elastic: Elasticsearch, index: str, doc: dict[str, any]) -> None:
-    doc_id = doc['id']
-    resp = elastic.index(index=index, id=doc_id, document=doc)
-    if resp['result'] == 'created':
-        print(f'Indexed {doc_id}: {len(doc.get('entityNames',[]))} entities')
-    else:
-        print(f'Indexing {doc_id} failed: {resp}')
 
 
 def index_suriano(container: ContainerAdapter, elastic: Elasticsearch, index: str, query: Query,
@@ -107,19 +113,21 @@ def index_overlapping_annotations(container: ContainerAdapter, anno: SearchResul
         if name:
             entity_names.add(name)
         else:
-            print(f'WARN: no name found for: {ent.path('body.metadata.entityId')}')
+            entity_id = ent.path('body.metadata.entityId')
+            logger.warning(f'no name found for: {entity_id}')
 
     return list(entity_names)
 
 
-def main(ar_host: str, ar_container: str, es_host: str, es_index: str, conf: any) -> None:
+def main(ar_host: str, ar_container: str, es_host: str, es_index: str, conf: dict[str, any]) -> None:
     print(f'Indexing {ar_host}/{ar_container} to {es_host}/{es_index}')
     annorepo = AnnoRepoClient(ar_host)
     container = annorepo.container_adapter(ar_container)
-    print(annorepo.get_about(), container)
+    logger.info("AnnoRepo: {about}", about=annorepo.get_about())
 
     elastic = Elasticsearch(es_host)
-    print(elastic.info())
+    logger.info("ElasticSearch: {info}", info=elastic.info())
+
     reset_index(elastic, es_index, MAPPING_FILE)
 
     index_suriano(container, elastic, es_index, {"body.type": "LetterBody"}, conf["fields"])
@@ -139,7 +147,13 @@ if __name__ == "__main__":
                         help='the ElasticSearch index name')
     parser.add_argument('--config', metavar='path', required=False,
                         default='config.yml', help='configuration file')
+    parser.add_argument('--trace', required=False, action='store_true',
+                        help='run indexer with logging in trace mode')
     args = parser.parse_args()
+
+    if args.trace:
+        logger.remove()
+        logger.add(sys.stderr, level="TRACE")
 
     with open(args.config, 'r') as file:
         config = yaml.safe_load(file)
