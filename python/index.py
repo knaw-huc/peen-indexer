@@ -130,7 +130,7 @@ def main(ar_host: str, ar_container: str, es_host: str, es_index: str, conf: dic
 
     reset_index(elastic, es_index, MAPPING_FILE)
 
-    index_suriano(container, elastic, es_index, {"body.type": "LetterBody"}, conf["fields"])
+    index_suriano(container, elastic, es_index, query={"body.type": conf["topTier"]}, fields=conf["fields"])
 
 
 if __name__ == "__main__":

@@ -1,3 +1,4 @@
+topTier: LetterBody
 fields:
   'bodyType': 'body.type'
   'date': 'body.metadata.date'
