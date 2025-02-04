@@ -10,9 +10,10 @@ from tqdm import tqdm
 from SearchResultAdapter import SearchResultAdapter
 from SearchResultItem import SearchResultItem
 
-MAPPING_FILE='mapping.json'
+MAPPING_FILE = 'mapping.json'
 
 type Query = dict[str, str]
+
 
 def reset_index(elastic: Elasticsearch, index_name: str, path: str | os.PathLike) -> None:
     if elastic.indices.exists(index=index_name):
@@ -22,6 +23,7 @@ def reset_index(elastic: Elasticsearch, index_name: str, path: str | os.PathLike
     mapping_path = Path(path)
     print(f'Creating ES index: {index_name} using mapping from {mapping_path}')
     elastic.indices.create(index=index_name, body=mapping_path.read_text())
+
 
 def build_overlapping_types_query(item: SearchResultItem, types: list[str]) -> dict[str, any]:
     target = item.first_target_with_selector('Text')
@@ -33,6 +35,7 @@ def build_overlapping_types_query(item: SearchResultItem, types: list[str]) -> d
                 "end": selector['end']
             }}
 
+
 def fetch_overlapping_annotations(container: ContainerAdapter, item: SearchResultItem, types: list[str]) \
         -> dict[str, list[SearchResultItem]]:
     query = build_overlapping_types_query(item, types)
@@ -42,8 +45,6 @@ def fetch_overlapping_annotations(container: ContainerAdapter, item: SearchResul
         item_annos[t] = list()
 
     overlapping_anno_search = SearchResultAdapter(container, query)
-    print(query)
-    print(overlapping_anno_search.search_info)
 
     anno_count = 0
     # pbar = tqdm(overlapping_anno_search.items(), total=overlapping_anno_search.hits(), colour='blue', leave=True,
@@ -56,7 +57,7 @@ def fetch_overlapping_annotations(container: ContainerAdapter, item: SearchResul
     # AnnoRepo now uses a MongoDB Cursor and has no support for upfront 'size' counting anymore
     # assert anno_count == overlapping_anno_search.hits()
 
-    print(f'item_annos: {item_annos}')
+    # print(f'item_annos: {item_annos}')
     return item_annos
 
 
@@ -70,29 +71,45 @@ def fetch_top_tier_text(anno: SearchResultItem):
         return {}
 
 
-def store_document(elastic:Elasticsearch, index: str, doc:dict[str,any]) -> None:
+def store_document(elastic: Elasticsearch, index: str, doc: dict[str, any]) -> None:
     doc_id = doc['id']
     resp = elastic.index(index=index, id=doc_id, document=doc)
     if resp['result'] == 'created':
-        print(f'Indexed {doc_id}: {doc}')
+        print(f'Indexed {doc_id}: {len(doc.get('entityNames',[]))} entities')
     else:
         print(f'Indexing {doc_id} failed: {resp}')
 
 
-def index_suriano(container:ContainerAdapter, elastic:Elasticsearch, index:str, query: Query, fields: dict[str, str]) -> None:
+def index_suriano(container: ContainerAdapter, elastic: Elasticsearch, index: str, query: Query,
+                  fields: dict[str, str]) -> None:
     top_tier_anno_search: SearchResultAdapter = SearchResultAdapter(container, query)
     for anno in top_tier_anno_search.items():
         doc = dict()
         doc['id'] = anno.path('body.id')
-        doc['text'] = "".join(fetch_top_tier_text(anno))  # join separator?
+        doc['text'] = "".join(fetch_top_tier_text(anno))
         for es_field, path in fields.items():
             doc[es_field] = anno.path(path)
+
+        names = index_overlapping_annotations(container, anno)
+        if names:
+            doc['entityNames'] = names
+
         store_document(elastic, index, doc)
+
 
 def index_overlapping_annotations(container: ContainerAdapter, anno: SearchResultItem):
     overlapping_annos = fetch_overlapping_annotations(container, anno, ['tf:Ent'])
-    for i in overlapping_annos['tf:Ent']:
-        print(f'i: {i}')
+
+    # collect all entity names into set to deduplicate possible multiples
+    entity_names = set()
+    for ent in overlapping_annos['tf:Ent']:
+        name = ent.path('body.metadata.details[0].value')
+        if name:
+            entity_names.add(name)
+        else:
+            print(f'WARN: no name found for: {ent.path('body.metadata.entityId')}')
+
+    return list(entity_names)
 
 
 def main(ar_host: str, ar_container: str, es_host: str, es_index: str, conf: any) -> None:
@@ -110,6 +127,7 @@ def main(ar_host: str, ar_container: str, es_host: str, es_index: str, conf: any
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description='index annorepo container to elastic index')
     parser.add_argument('--annorepo-host', metavar='path', required=True,
                         help='the AnnoRepo host')

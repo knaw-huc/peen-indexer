@@ -10,6 +10,9 @@
       "editorNotes": {
         "type": "keyword"
       },
+      "entityNames": {
+        "type": "keyword"
+      },
       "recipient": {
         "type": "keyword"
       },

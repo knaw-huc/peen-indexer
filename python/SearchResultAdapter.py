@@ -17,7 +17,7 @@ class SearchResultAdapter:
 
     def __hash__(self):
         ser = json.dumps((self.query, self.container.client.base_url), sort_keys=True)
-        print(ser)
+        # print(ser)
         return hash(ser)
 
     def hits(self) -> int:
@@ -33,7 +33,6 @@ class SearchResultAdapter:
         return self.cached_hits
 
     def items(self, start_page: int = 0) -> Generator[SearchResultItem]:
-        first_pass_count = -1
         cur_page = start_page
         while True:
             res = self.container.read_search_result_page(self.search_info.id, cur_page)
@@ -42,16 +41,17 @@ class SearchResultAdapter:
 
             # could be last page, or may have hit bug in MongoDB cursor in AR
             if 'next' not in res:
-                print(f'no "next", last page? page={cur_page}')
+                # print(f'no "next", last page? page={cur_page}')
                 first_pass_count = len(res['items'])
                 res = self.container.read_search_result_page(self.search_info.id, cur_page)
                 second_pass_count = len(res['items'])
-                print(f'retry: pass 1: {first_pass_count}, pass 2: {second_pass_count}')
+                # print(f'retry: pass 1: {first_pass_count}, pass 2: {second_pass_count}')
                 if first_pass_count == second_pass_count:
-                    # retry yields same number, so this is final page
-                    print('confirmed last page')
+                # retry yields same number, so this is final page
+                # print('confirmed last page')
+                    pass
                 else:
-                    print("recovered from missing 'next_page'")
+                    # print("recovered from missing 'next_page'")
                     continue
 
             for item in res['items']:

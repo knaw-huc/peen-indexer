@@ -9,7 +9,12 @@ class SearchResultItem:
     def path(self, path: str) -> any:
         result = self.values
         for step in path.split('.'):
-            if step in result:
+            if '[' in step:
+                step, index = step.split('[')
+                index = int(index.rstrip(']'))
+                if step in result:
+                    result = result[step][index]
+            elif step in result:
                 result = result[step]
             else:
                 return None
