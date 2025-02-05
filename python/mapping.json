@@ -1,14 +1,8 @@
 {
   "mappings": {
     "properties": {
-      "bodyType": {
-        "type": "keyword"
-      },
       "date": {
         "type": "date"
-      },
-      "editorNotes": {
-        "type": "keyword"
       },
       "entityNames": {
         "type": "keyword"
@@ -16,16 +10,7 @@
       "recipient": {
         "type": "keyword"
       },
-      "recipientLoc": {
-        "type": "keyword"
-      },
       "sender": {
-        "type": "keyword"
-      },
-      "senderLoc": {
-        "type": "keyword"
-      },
-      "shelfmark": {
         "type": "keyword"
       },
       "summary": {
