@@ -8,6 +8,6 @@ COPY SearchResultAdapter.py .
 COPY SearchResultItem.py .
 COPY mapping.json .
 COPY config.yml .
-COPY run.sh .
+COPY start.sh .
 
-CMD ["./run.sh"]
+CMD ["./start.sh"]
