@@ -2,7 +2,7 @@
 
 set -e
 
-python ./index.py \
+exec python ./index.py \
         --annorepo-host $AR_HOST \
         --annorepo-container $AR_CONTAINER \
         --elastic-host $ES_HOST \
