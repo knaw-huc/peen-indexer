@@ -1,11 +1,6 @@
 topTier: LetterBody
 fields:
-  'bodyType': 'body.type'
   'date': 'body.metadata.date'
-  'editorNotes': 'body.metadata.editorNotes'
   'recipient': 'body.metadata.recipient'
-  'recipientLoc': 'body.metadata.recipientLoc'
   'sender': 'body.metadata.sender'
-  'senderLoc': 'body.metadata.senderLoc'
-  'shelfmark': 'body.metadata.shelfmark'
   'summary': 'body.metadata.summary'
