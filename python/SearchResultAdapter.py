@@ -1,6 +1,6 @@
 import json
 from collections.abc import Generator
-from typing import Dict, Any
+from typing import Any, Dict
 
 from annorepo.client import ContainerAdapter
 
