@@ -1,0 +1,5 @@
+annorepo-client
+elasticsearch
+loguru
+pyyaml
+requests

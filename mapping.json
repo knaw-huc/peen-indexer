@@ -1,0 +1,52 @@
+{
+  "mappings": {
+    "properties": {
+      "correspondent": {
+        "type": "keyword"
+      },
+      "file": {
+        "type": "keyword"
+      },
+      "letterId": {
+        "type": "keyword"
+      },
+      "location": {
+        "type": "keyword"
+      },
+      "period": {
+        "type": "keyword"
+      },
+      "periodLong": {
+        "type": "keyword"
+      },
+      "sender": {
+        "type": "keyword"
+      },
+      "text": {
+        "type": "text",
+        "fields": {
+          "tokenCount": {
+            "type": "token_count",
+            "analyzer": "fulltext_analyzer"
+          }
+        },
+        "index_options": "offsets",
+        "analyzer": "fulltext_analyzer"
+      },
+      "viewType": {
+        "type": "keyword"
+      }
+    }
+  },
+  "settings": {
+    "analysis": {
+      "analyzer": {
+        "fulltext_analyzer": {
+          "filter": ["lowercase"],
+          "type": "custom",
+          "tokenizer": "standard"
+        }
+      }
+    }
+  }
+}

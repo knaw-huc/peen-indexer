@@ -1,0 +1,27 @@
+topTier: tf:Letter
+fields:
+  "correspondent": "body.metadata.correspondent"
+  "file": "body.metadata.file"
+  "location": "body.metadata.location"
+  "period": "body.metadata.period"
+  "periodLong": "body.metadata.periodLong"
+  "sender": "body.metadata.sender"
+views:
+  - name: original
+    constraints:
+      - path: body.type
+        value: tei:Div
+      - path: body.metadata.type
+        value: original
+  - name: translation
+    constraints:
+      - path: body.type
+        value: tei:Div
+      - path: body.metadata.type
+        value: translation
+  - name: notes
+    constraints:
+      - path: body.type
+        value: tei:ListAnnotation
+      - path: body.metadata.type
+        value: notes
