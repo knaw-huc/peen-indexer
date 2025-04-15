@@ -1,2 +1,9 @@
+[tool.poetry]
+name = "peen-indexer"
+version = "0.1.0"
+description = ""
+authors = ["Hayco de Jong <hayco.de.jong@di.huc.knaw.nl>"]
+readme = "README.md"
+
 [tool.black]
 skip-string-normalization = 1
