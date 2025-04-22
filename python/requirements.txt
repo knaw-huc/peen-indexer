@@ -1,7 +1,0 @@
-annorepo-client
-elasticsearch
-jsonpickle
-loguru
-pyyaml
-requests
-tqdm

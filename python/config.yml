@@ -1,6 +1,0 @@
-topTier: LetterBody
-fields:
-  'date': 'body.metadata.date'
-  'recipient': 'body.metadata.recipient'
-  'sender': 'body.metadata.sender'
-  'summary': 'body.metadata.summary'
