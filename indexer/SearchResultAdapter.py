@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 from annorepo.client import ContainerAdapter
 
-from SearchResultItem import SearchResultItem
+from .SearchResultItem import SearchResultItem
 
 
 class SearchResultAdapter:

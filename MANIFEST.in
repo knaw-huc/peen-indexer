@@ -1,0 +1,2 @@
+recursive-include indexer/ *
+recursive-exclude __pycache__ *

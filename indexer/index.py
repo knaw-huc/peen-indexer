@@ -8,7 +8,7 @@ from annorepo.client import AnnoRepoClient, ContainerAdapter
 from elasticsearch import ApiError, Elasticsearch
 from loguru import logger
 
-from SearchResultAdapter import SearchResultAdapter
+from .SearchResultAdapter import SearchResultAdapter
 
 MAPPING_FILE = "mapping.json"
 
