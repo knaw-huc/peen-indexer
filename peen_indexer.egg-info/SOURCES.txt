@@ -1,0 +1,15 @@
+MANIFEST.in
+README.md
+pyproject.toml
+setup.cfg
+indexer/SearchResultAdapter.py
+indexer/SearchResultItem.py
+indexer/config.yml
+indexer/index.py
+indexer/mapping.json
+peen_indexer.egg-info/PKG-INFO
+peen_indexer.egg-info/SOURCES.txt
+peen_indexer.egg-info/dependency_links.txt
+peen_indexer.egg-info/not-zip-safe
+peen_indexer.egg-info/requires.txt
+peen_indexer.egg-info/top_level.txt

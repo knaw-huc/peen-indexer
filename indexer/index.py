@@ -10,14 +10,15 @@ from loguru import logger
 
 from .SearchResultAdapter import SearchResultAdapter
 
-MAPPING_FILE = "mapping.json"
+MAPPING_FILE = f"{os.path.dirname(__file__)}/mapping.json"
+CONFIG_DEFAULT = f"{os.path.dirname(__file__)}/config.yml"
 
 type Query = dict[str, str]
 
 
 def reset_index(
     elastic: Elasticsearch, index_name: str, path: str | os.PathLike
-) -> None:
+) -> int:
     if elastic.indices.exists(index=index_name):
         logger.trace("Deleting ES index {index_name}", index_name=index_name)
         try:
@@ -25,7 +26,7 @@ def reset_index(
             logger.success("Deleted ES index {}: {}", index_name, res)
         except ApiError as err:
             logger.critical(err)
-            sys.exit(-1)
+            return -1
 
     mapping_path = Path(path)
     logger.trace(
@@ -38,10 +39,12 @@ def reset_index(
         logger.success("Created ES index {}: {}", index_name, res)
     except ApiError as err:
         logger.critical(err)
-        sys.exit(-2)
+        return -2
+
+    return 0
 
 
-def store_document(elastic: Elasticsearch, index: str, doc: dict[str, any]) -> None:
+def store_document(elastic: Elasticsearch, index: str, doc: dict[str, any]) -> int:
     doc_id = doc["id"]
     resp = elastic.index(index=index, id=doc_id, document=doc)
     logger.trace(resp)
@@ -49,13 +52,22 @@ def store_document(elastic: Elasticsearch, index: str, doc: dict[str, any]) -> N
         logger.success("Indexed {}", doc_id)
     else:
         logger.critical("Indexing {} failed: {}", doc_id, resp)
-        sys.exit(-3)
+        return -3
+
+    return 0
 
 
-def index_views(container: ContainerAdapter, elastic: Elasticsearch, index: str, query: Query,
-                fields: dict[str, str], views: dict[str, str]) -> None:
+def index_views(
+    container: ContainerAdapter,
+    elastic: Elasticsearch,
+    index: str,
+    query: Query,
+    fields: dict[str, str],
+    views: dict[str, str],
+) -> int:
     logger.trace("views: {}", views)
     top_tier_anno_search: SearchResultAdapter = SearchResultAdapter(container, query)
+
     for anno in top_tier_anno_search.items():
         logger.trace("anno: {}", anno)
 
@@ -70,18 +82,23 @@ def index_views(container: ContainerAdapter, elastic: Elasticsearch, index: str,
         }
 
         letter_id = anno.path("body.id")
+
         for view in views:
-            for constraint in view['constraints']:
-                overlap_query[constraint['path']] = constraint['value']
+            for constraint in view["constraints"]:
+                overlap_query[constraint["path"]] = constraint["value"]
             logger.trace(" - overlap query: {}", overlap_query)
-            overlap_search: SearchResultAdapter = SearchResultAdapter(container, overlap_query)
+            overlap_search: SearchResultAdapter = SearchResultAdapter(
+                container, overlap_query
+            )
             overlap_anno = next(overlap_search.items())
             logger.trace(" - overlap_anno: {}", overlap_anno)
 
             text_target = overlap_anno.first_target_without_selector("LogicalText")
             resp = requests.get(text_target["source"], timeout=5)
             if resp.status_code != 200:
-                logger.warning("Failed to get text for {}: {}", overlap_anno.path("body.id"), resp)
+                logger.warning(
+                    "Failed to get text for {}: {}", overlap_anno.path("body.id"), resp
+                )
             else:
                 view_text = "".join(resp.json())
                 logger.trace(" - text=[{}]", view_text)
@@ -89,20 +106,37 @@ def index_views(container: ContainerAdapter, elastic: Elasticsearch, index: str,
                 doc = {
                     "id": f"{letter_id}_{view['name']}",
                     "letterId": letter_id,
-                    "viewType": view['name'],
-                    "text": "".join(view_text)
+                    "viewType": view["name"],
+                    "text": "".join(view_text),
                 }
 
                 for es_field, path in fields.items():
                     doc[es_field] = anno.path(path)
 
                 logger.trace(" - es_doc: {}", doc)
-                store_document(elastic, index, doc)
+                status = store_document(elastic, index, doc)
+
+                if status != 0:
+                    return status
+
+    return 0
 
 
 def main(
-    ar_host: str, ar_container: str, es_host: str, es_index: str, conf: dict[str, any]
-) -> None:
+    ar_host: str,
+    ar_container: str,
+    es_host: str,
+    es_index: str,
+    cfg_path=None,
+) -> int:
+
+    path = CONFIG_DEFAULT if cfg_path is None else cfg_path
+    try:
+        with open(path, "r", encoding="utf-8") as file:
+            conf = yaml.safe_load(file)
+    except Exception:
+        return -1
+
     print(f"Indexing {ar_host}/{ar_container} to {es_host}/{es_index}")
     annorepo = AnnoRepoClient(ar_host)
     container = annorepo.container_adapter(ar_container)
@@ -111,15 +145,18 @@ def main(
     elastic = Elasticsearch(es_host)
     logger.info("ElasticSearch: {info}", info=elastic.info())
 
-    reset_index(elastic, es_index, MAPPING_FILE)
+    status = reset_index(elastic, es_index, MAPPING_FILE)
 
-    index_views(
+    if status != 0:
+        return status
+
+    return index_views(
         container,
         elastic,
         es_index,
         query={"body.type": conf["topTier"]},
         fields=conf["fields"],
-        views=conf["views"]
+        views=conf["views"],
     )
 
 
@@ -155,7 +192,7 @@ if __name__ == "__main__":
         "--config",
         metavar="path",
         required=False,
-        default="config.yml",
+        default=CONFIG_DEFAULT,
         help="configuration file",
     )
     parser.add_argument(
@@ -170,12 +207,17 @@ if __name__ == "__main__":
         logger.remove()
         logger.add(sys.stderr, level="TRACE")
 
-    with open(args.config, "r", encoding="utf-8") as file:
-        config = yaml.safe_load(file)
-        main(
-            args.annorepo_host,
-            args.annorepo_container,
-            args.elastic_host,
-            args.elastic_index,
-            config,
-        )
+    try:
+        with open(args.config, "r", encoding="utf-8") as file:
+            config = yaml.safe_load(file)
+            status = main(
+                args.annorepo_host,
+                args.annorepo_container,
+                args.elastic_host,
+                args.elastic_index,
+                config,
+            )
+    except Exception:
+        status = -1
+
+    sys.exit(status)
