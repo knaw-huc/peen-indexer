@@ -90,34 +90,40 @@ def index_views(
             overlap_search: SearchResultAdapter = SearchResultAdapter(
                 container, overlap_query
             )
-            overlap_anno = next(overlap_search.items())
-            logger.trace(" - overlap_anno: {}", overlap_anno)
+            try:
+                overlap_anno = next(overlap_search.items())
 
-            text_target = overlap_anno.first_target_without_selector("LogicalText")
-            resp = requests.get(text_target["source"], timeout=5)
-            if resp.status_code != 200:
-                logger.warning(
-                    "Failed to get text for {}: {}", overlap_anno.path("body.id"), resp
-                )
-            else:
-                view_text = "".join(resp.json())
-                logger.trace(" - text=[{}]", view_text)
+                logger.trace(" - overlap_anno: {}", overlap_anno)
 
-                doc = {
-                    "id": f"{letter_id}_{view['name']}",
-                    "letterId": letter_id,
-                    "viewType": view["name"],
-                    "text": "".join(view_text),
-                }
+                text_target = overlap_anno.first_target_without_selector("LogicalText")
+                resp = requests.get(text_target["source"], timeout=5)
+                if resp.status_code != 200:
+                    logger.warning(
+                        "Failed to get text for {}: {}",
+                        overlap_anno.path("body.id"),
+                        resp,
+                    )
+                else:
+                    view_text = "".join(resp.json())
+                    logger.trace(" - text=[{}]", view_text)
 
-                for es_field, path in fields.items():
-                    doc[es_field] = anno.path(path)
+                    doc = {
+                        "id": f"{letter_id}_{view['name']}",
+                        "letterId": letter_id,
+                        "viewType": view["name"],
+                        "text": "".join(view_text),
+                    }
 
-                logger.trace(" - es_doc: {}", doc)
-                status = store_document(elastic, index, doc)
+                    for es_field, path in fields.items():
+                        doc[es_field] = anno.path(path)
 
-                if status != 0:
-                    return status
+                    logger.trace(" - es_doc: {}", doc)
+                    status = store_document(elastic, index, doc)
+
+                    if status != 0:
+                        return status
+            except StopIteration:
+                logger.warning("No more items")
 
     return 0
 

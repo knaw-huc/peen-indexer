@@ -1,6 +1,7 @@
 run:
-	python3 index.py \
+	python3 doit.py \
 		--annorepo-host=https://preview.dev.diginfra.org/annorepo \
-		--annorepo-container=vangogh \
+		--annorepo-container=israels \
 		--elastic-host=https://preview.dev.diginfra.org/brinta \
-		--elastic-index=vg2
+		--elastic-index=israels \
+		--trace
