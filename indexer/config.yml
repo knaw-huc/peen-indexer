@@ -13,7 +13,7 @@ views:
         value: tei:Div
       - path: body.metadata.type
         value: original
-  - name: translation
+  - name: translated
     constraints:
       - path: body.type
         value: tei:Div

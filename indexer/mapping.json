@@ -7,9 +7,6 @@
       "file": {
         "type": "keyword"
       },
-      "letterId": {
-        "type": "keyword"
-      },
       "location": {
         "type": "keyword"
       },
@@ -22,7 +19,7 @@
       "sender": {
         "type": "keyword"
       },
-      "text": {
+      "originalText": {
         "type": "text",
         "fields": {
           "tokenCount": {
@@ -33,8 +30,27 @@
         "index_options": "offsets",
         "analyzer": "fulltext_analyzer"
       },
-      "viewType": {
-        "type": "keyword"
+      "translatedText": {
+        "type": "text",
+        "fields": {
+          "tokenCount": {
+            "type": "token_count",
+            "analyzer": "fulltext_analyzer"
+          }
+        },
+        "index_options": "offsets",
+        "analyzer": "fulltext_analyzer"
+      },
+      "notesText": {
+        "type": "text",
+        "fields": {
+          "tokenCount": {
+            "type": "token_count",
+            "analyzer": "fulltext_analyzer"
+          }
+        },
+        "index_options": "offsets",
+        "analyzer": "fulltext_analyzer"
       }
     }
   },

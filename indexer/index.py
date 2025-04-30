@@ -44,15 +44,14 @@ def reset_index(
     return 0
 
 
-def store_document(elastic: Elasticsearch, index: str, doc: dict[str, any]) -> int:
-    doc_id = doc["id"]
+def store_document(elastic: Elasticsearch, index: str, doc_id: str, doc: dict[str, any]) -> int:
     resp = elastic.index(index=index, id=doc_id, document=doc)
     logger.trace(resp)
     if resp["result"] == "created":
         logger.success("Indexed {}", doc_id)
     else:
         logger.critical("Indexing {} failed: {}", doc_id, resp)
-        return -3
+        return -1
 
     return 0
 
@@ -71,6 +70,8 @@ def index_views(
     for anno in top_tier_anno_search.items():
         logger.trace("anno: {}", anno)
 
+        doc_id = anno.path("body.id")
+
         target = anno.first_target_with_selector("Text")
         selector = target["selector"]
         overlap_query = {
@@ -81,9 +82,13 @@ def index_views(
             },
         }
 
-        letter_id = anno.path("body.id")
+        doc = {}
+
+        for es_field, path in fields.items():
+            doc[es_field] = anno.path(path)
 
         for view in views:
+            view_name = f"{view["name"]}Text"
             for constraint in view["constraints"]:
                 overlap_query[constraint["path"]] = constraint["value"]
             logger.trace(" - overlap query: {}", overlap_query)
@@ -92,7 +97,6 @@ def index_views(
             )
             try:
                 overlap_anno = next(overlap_search.items())
-
                 logger.trace(" - overlap_anno: {}", overlap_anno)
 
                 text_target = overlap_anno.first_target_without_selector("LogicalText")
@@ -105,25 +109,16 @@ def index_views(
                     )
                 else:
                     view_text = "".join(resp.json())
-                    logger.trace(" - text=[{}]", view_text)
+                    logger.trace(f" - {view_name}=[{view_text}]")
+                    doc[view_name] = view_text
 
-                    doc = {
-                        "id": f"{letter_id}_{view['name']}",
-                        "letterId": letter_id,
-                        "viewType": view["name"],
-                        "text": "".join(view_text),
-                    }
-
-                    for es_field, path in fields.items():
-                        doc[es_field] = anno.path(path)
-
-                    logger.trace(" - es_doc: {}", doc)
-                    status = store_document(elastic, index, doc)
-
-                    if status != 0:
-                        return status
             except StopIteration:
                 logger.warning("No more items")
+
+
+        logger.trace(" - es_doc: {}", doc)
+        if store_document(elastic, index, doc_id, doc) < 0:
+            return -3
 
     return 0
 
@@ -140,7 +135,7 @@ def main(
     try:
         with open(path, "r", encoding="utf-8") as file:
             conf = yaml.safe_load(file)
-    except Exception:
+    except OSError:
         return -1
 
     print(f"Indexing {ar_host}/{ar_container} to {es_host}/{es_index}")
@@ -151,10 +146,9 @@ def main(
     elastic = Elasticsearch(es_host)
     logger.info("ElasticSearch: {info}", info=elastic.info())
 
-    status = reset_index(elastic, es_index, MAPPING_FILE)
-
-    if status != 0:
-        return status
+    es_result = reset_index(elastic, es_index, MAPPING_FILE)
+    if es_result != 0:
+        return es_result
 
     return index_views(
         container,
@@ -223,7 +217,7 @@ if __name__ == "__main__":
                 args.elastic_index,
                 config,
             )
-    except Exception:
+    except OSError:
         status = -1
 
     sys.exit(status)
