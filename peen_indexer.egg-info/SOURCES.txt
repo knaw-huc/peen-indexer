@@ -7,6 +7,9 @@ indexer/SearchResultItem.py
 indexer/config.yml
 indexer/index.py
 indexer/mapping.json
+indexer/__pycache__/SearchResultAdapter.cpython-313.pyc
+indexer/__pycache__/SearchResultItem.cpython-313.pyc
+indexer/__pycache__/index.cpython-313.pyc
 peen_indexer.egg-info/PKG-INFO
 peen_indexer.egg-info/SOURCES.txt
 peen_indexer.egg-info/dependency_links.txt

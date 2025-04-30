@@ -1,1 +1,6 @@
 wheel
+annorepo-client
+elasticsearch==8.17.2
+loguru
+pyyaml
+requests

@@ -17,5 +17,10 @@ Classifier: Programming Language :: Python :: Implementation :: CPython
 Classifier: Topic :: Scientific/Engineering :: Information Analysis
 Requires-Python: >=3.9.0
 Requires-Dist: wheel
+Requires-Dist: annorepo-client
+Requires-Dist: elasticsearch==8.17.2
+Requires-Dist: loguru
+Requires-Dist: pyyaml
+Requires-Dist: requests
 
 file README.md

@@ -3,5 +3,5 @@ run:
 		--annorepo-host=https://preview.dev.diginfra.org/annorepo \
 		--annorepo-container=israels \
 		--elastic-host=https://preview.dev.diginfra.org/brinta \
-		--elastic-index=israels \
+		--elastic-index=isr2 \
 		--trace
