@@ -44,7 +44,9 @@ def reset_index(
     return 0
 
 
-def store_document(elastic: Elasticsearch, index: str, doc_id: str, doc: dict[str, any]) -> int:
+def store_document(
+    elastic: Elasticsearch, index: str, doc_id: str, doc: dict[str, any]
+) -> int:
     resp = elastic.index(index=index, id=doc_id, document=doc)
     logger.trace(resp)
     if resp["result"] == "created":
@@ -115,7 +117,6 @@ def index_views(
             except StopIteration:
                 logger.warning("No more items")
 
-
         logger.trace(" - es_doc: {}", doc)
         if store_document(elastic, index, doc_id, doc) < 0:
             return -3
@@ -129,7 +130,19 @@ def main(
     es_host: str,
     es_index: str,
     cfg_path=None,
+    show_progress: bool = False,
+    log_file_path: str = None,
 ) -> int:
+
+    if not show_progress:
+        logger.remove()
+        logger.add(sys.stdout, level="WARNING")
+
+    if log_file_path:
+        logger.remove()
+        if os.path.exists(log_file_path):
+            os.remove(log_file_path)
+        logger.add(log_file_path)
 
     path = CONFIG_DEFAULT if cfg_path is None else cfg_path
     try:
