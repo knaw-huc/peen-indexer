@@ -72,7 +72,7 @@ def extract_name(p: dict[str, Any]) -> str:
     return " ".join(filter(None, [forename, name_link, surname]))
 
 
-def extract_artwork(container: ContainerAdapter, overlap_query: dict[str, Any]) -> dict[str, set[str]]:
+def extract_artworks(container: ContainerAdapter, overlap_query: dict[str, Any]) -> dict[str, set[str]]:
     # fetch overlapping Rs[type=artwork] annotations
     query = overlap_query.copy()
     query.update({
@@ -145,7 +145,7 @@ def index_views(
         for es_field, path in fields.items():
             doc[es_field] = anno.path(path)
 
-        artworks = extract_artwork(container, overlap_query)
+        artworks = extract_artworks(container, overlap_query)
         logger.trace(" - artworks: {}", artworks)
         for lang in artworks.keys():
             lang_key = f"artworks{lang.upper()}"
