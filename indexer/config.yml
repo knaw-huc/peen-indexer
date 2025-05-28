@@ -1,4 +1,4 @@
-topTier: tf:Letter
+topTier: "tf:Letter"
 fields:
   "correspondent": "body.metadata.correspondent"
   "file": "body.metadata.file"
@@ -9,19 +9,19 @@ fields:
 views:
   - name: original
     constraints:
-      - path: body.type
-        value: tei:Div
+      - path: "body.type"
+        value: "tei:Div"
       - path: "body.metadata.tei:type"
         value: original
   - name: translated
     constraints:
-      - path: body.type
-        value: tei:Div
+      - path: "body.type"
+        value: "tei:Div"
       - path: "body.metadata.tei:type"
         value: translation
   - name: notes
     constraints:
-      - path: body.type
-        value: tei:ListAnnotation
+      - path: "body.type"
+        value: "tei:ListAnnotation"
       - path: "body.metadata.tei:type"
         value: notes
