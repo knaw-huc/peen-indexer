@@ -62,7 +62,9 @@ def store_document(
 
 def extract_name(p: dict[str, Any]) -> str:
     forename = p['forename']
-    name_link = p['nameLink'] if 'nameLink' in p else None
+
+    name_link = p.get('nameLink')
+
     surname = p['surname']
     if type(surname) is list:
         for part in surname:
