@@ -79,10 +79,11 @@ def extract_artworks(container: ContainerAdapter, overlap_query: dict[str, Any])
         "body.type": "tei:Rs",
         "body.metadata.tei:type": "artwork"
     })
-    logger.trace(" - artworks query: {}", query)
+    logger.trace("artworks query: {}", query)
 
     artworks = dict()
     for anno in SearchResultAdapter(container, query).items():
+        logger.trace("artwork_anno: {}", anno)
         for ref in anno.path("body.metadata.ref"):
             for h in ref['head']:
                 lang = h['lang']
@@ -100,12 +101,13 @@ def extract_persons(container: ContainerAdapter, overlap_query: dict[str, Any]) 
         "body.type": "tei:Rs",
         "body.metadata.tei:type": "person"
     })
-    logger.trace(" - persons query: {}", query)
+    logger.trace("persons query: {}", query)
 
     # extract a suitable name for each person p based on "persName(full=yes)" part of annotation
     # this treats persons p1,p2 as equal based on their name, not on whether p1.id == p2.id (!)
     persons = set()
     for anno in SearchResultAdapter(container, query).items():
+        logger.trace("person_anno: {}", anno)
         for ref in anno.path("body.metadata.ref"):
             for p in ref['persName']:
                 if p['full'] == 'yes':
