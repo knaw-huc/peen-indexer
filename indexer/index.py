@@ -107,14 +107,18 @@ def extract_persons(container: ContainerAdapter, overlap_query: dict[str, Any]) 
     # this treats persons p1,p2 as equal based on their name, not on whether p1.id == p2.id (!)
     persons = set()
     for anno in SearchResultAdapter(container, query).items():
+        anno_id = anno.path("body.id")
         logger.trace("person_anno: {}", anno)
         for ref in anno.path("body.metadata.ref"):
+            if not 'persName' in ref:
+                logger.error("Missing 'persName' in {}", anno_id)
+                continue
             for p in ref['persName']:
                 if p['full'] == 'yes':
                     if 'forename' in p and 'surname' in p:
                         persons.add(extract_name(p))
                     else:
-                        logger.warning("Missing 'forename' or 'surname' in {}", p)
+                        logger.error("Missing 'forename' or 'surname' in {}", anno_id)
 
     return persons
 
