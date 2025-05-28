@@ -72,7 +72,12 @@ def extract_name(p: dict[str, Any]) -> str:
                 surname = part['text']
             else:
                 surname = part
-    return " ".join(filter(None, [forename, name_link, surname]))
+
+    name = surname + ", " + forename
+    if name_link:
+        name += " " + name_link
+    return name
+    # return " ".join(filter(None, [forename, name_link, surname]))
 
 
 def extract_artworks(container: ContainerAdapter, overlap_query: dict[str, Any]) -> dict[str, set[str]]:
