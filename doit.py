@@ -53,4 +53,6 @@ with open(args.config, "r", encoding="utf-8") as file:
         args.annorepo_container,
         args.elastic_host,
         args.elastic_index,
+        args.config,
+        True
     )

@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+from typing import Any
 
 import requests
 import yaml
@@ -17,7 +18,7 @@ type Query = dict[str, str]
 
 
 def reset_index(
-    elastic: Elasticsearch, index_name: str, path: str | os.PathLike
+        elastic: Elasticsearch, index_name: str, path: str | os.PathLike
 ) -> int:
     if elastic.indices.exists(index=index_name):
         logger.trace("Deleting ES index {index_name}", index_name=index_name)
@@ -45,7 +46,7 @@ def reset_index(
 
 
 def store_document(
-    elastic: Elasticsearch, index: str, doc_id: str, doc: dict[str, any]
+        elastic: Elasticsearch, index: str, doc_id: str, doc: dict[str, Any]
 ) -> int:
     resp = elastic.index(index=index, id=doc_id, document=doc)
     logger.trace(resp)
@@ -58,13 +59,70 @@ def store_document(
     return 0
 
 
+def extract_name(p: dict[str, Any]) -> str:
+    forename = p['forename']
+    name_link = p['nameLink'] if 'nameLink' in p else None
+    surname = p['surname']
+    if type(surname) is list:
+        for part in surname:
+            if type(part) is dict and part['tei:type'] == 'married-name':
+                surname = part['text']
+            else:
+                surname = part
+    return " ".join(filter(None, [forename, name_link, surname]))
+
+
+def extract_artworks(container: ContainerAdapter, overlap_query: dict[str, Any]) -> dict[str, set[str]]:
+    # fetch overlapping Rs[type=artwork] annotations
+    query = overlap_query.copy()
+    query.update({
+        "body.type": "tei:Rs",
+        "body.metadata.tei:type": "artwork"
+    })
+    logger.trace("artworks query: {}", query)
+
+    artworks = dict()
+    for anno in SearchResultAdapter(container, query).items():
+        logger.trace("artwork_anno: {}", anno)
+        for ref in anno.path("body.metadata.ref"):
+            for h in ref['head']:
+                lang = h['lang']
+                if not lang in artworks:
+                    artworks[lang] = set()
+                artworks[lang].add(h['text'])
+
+    return artworks
+
+
+def extract_persons(container: ContainerAdapter, overlap_query: dict[str, Any]) -> set[str]:
+    # construct query to fetch overlapping person annotations
+    query = overlap_query.copy()
+    query.update({
+        "body.type": "tei:Rs",
+        "body.metadata.tei:type": "person"
+    })
+    logger.trace("persons query: {}", query)
+
+    # extract a suitable name for each person p based on "persName(full=yes)" part of annotation
+    # this treats persons p1,p2 as equal based on their name, not on whether p1.id == p2.id (!)
+    persons = set()
+    for anno in SearchResultAdapter(container, query).items():
+        logger.trace("person_anno: {}", anno)
+        for ref in anno.path("body.metadata.ref"):
+            for p in ref['persName']:
+                if p['full'] == 'yes':
+                    persons.add(extract_name(p))
+
+    return persons
+
+
 def index_views(
-    container: ContainerAdapter,
-    elastic: Elasticsearch,
-    index: str,
-    query: Query,
-    fields: dict[str, str],
-    views: dict[str, str],
+        container: ContainerAdapter,
+        elastic: Elasticsearch,
+        index: str,
+        query: Query,
+        fields: dict[str, str],
+        views: dict[str, str],
 ) -> int:
     logger.trace("views: {}", views)
     top_tier_anno_search: SearchResultAdapter = SearchResultAdapter(container, query)
@@ -88,6 +146,16 @@ def index_views(
 
         for es_field, path in fields.items():
             doc[es_field] = anno.path(path)
+
+        artworks = extract_artworks(container, overlap_query)
+        logger.trace(" - artworks: {}", artworks)
+        for lang in artworks.keys():
+            lang_key = f"artworks{lang.upper()}"
+            doc[lang_key] = sorted(artworks[lang])
+
+        persons = extract_persons(container, overlap_query)
+        logger.trace(" - persons: {}", persons)
+        doc['persons'] = sorted(persons)
 
         for view in views:
             view_name = f"{view["name"]}Text"
@@ -115,9 +183,9 @@ def index_views(
                     doc[view_name] = view_text
 
             except StopIteration:
-                logger.warning("No more items")
+                logger.warning(f"Empty '{view["name"]}' view")
 
-        logger.trace(" - es_doc: {}", doc)
+        logger.debug(" - es_doc[{}]: {}", doc_id, doc)
         if store_document(elastic, index, doc_id, doc) < 0:
             return -3
 
@@ -125,15 +193,14 @@ def index_views(
 
 
 def main(
-    ar_host: str,
-    ar_container: str,
-    es_host: str,
-    es_index: str,
-    cfg_path=None,
-    show_progress: bool = False,
-    log_file_path: str = None,
+        ar_host: str,
+        ar_container: str,
+        es_host: str,
+        es_index: str,
+        cfg_path=None,
+        show_progress: bool = False,
+        log_file_path: str = None,
 ) -> int:
-
     if not show_progress:
         logger.remove()
         logger.add(sys.stdout, level="WARNING")
