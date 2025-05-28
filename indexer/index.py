@@ -111,7 +111,10 @@ def extract_persons(container: ContainerAdapter, overlap_query: dict[str, Any]) 
         for ref in anno.path("body.metadata.ref"):
             for p in ref['persName']:
                 if p['full'] == 'yes':
-                    persons.add(extract_name(p))
+                    if 'forename' in p and 'surname' in p:
+                        persons.add(extract_name(p))
+                    else:
+                        logger.warning("Missing 'forename' or 'surname' in {}", p)
 
     return persons
 
