@@ -1,5 +1,6 @@
 import os
 import sys
+from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -81,14 +82,12 @@ def extract_artworks(container: ContainerAdapter, overlap_query: dict[str, Any])
     })
     logger.trace("artworks query: {}", query)
 
-    artworks = dict()
+    artworks = defaultdict(set)
     for anno in SearchResultAdapter(container, query).items():
         logger.trace("artwork_anno: {}", anno)
         for ref in anno.path("body.metadata.ref"):
             for h in ref['head']:
                 lang = h['lang']
-                if not lang in artworks:
-                    artworks[lang] = set()
                 artworks[lang].add(h['text'])
 
     return artworks
