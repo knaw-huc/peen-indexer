@@ -60,26 +60,6 @@ def store_document(
     return 0
 
 
-def extract_name(p: dict[str, Any]) -> str:
-    forename = p['forename']
-
-    name_link = p.get('nameLink')
-
-    surname = p['surname']
-    if type(surname) is list:
-        for part in surname:
-            if type(part) is dict and part['tei:type'] == 'married-name':
-                surname = part['text']
-            else:
-                surname = part
-
-    name = surname + ", " + forename
-    if name_link:
-        name += " " + name_link
-    return name
-    # return " ".join(filter(None, [forename, name_link, surname]))
-
-
 def extract_artworks(container: ContainerAdapter, overlap_query: dict[str, Any]) -> dict[str, set[str]]:
     # fetch overlapping Rs[type=artwork] annotations
     query = overlap_query.copy()
@@ -109,22 +89,21 @@ def extract_persons(container: ContainerAdapter, overlap_query: dict[str, Any]) 
     })
     logger.trace("persons query: {}", query)
 
-    # extract a suitable name for each person p based on "persName(full=yes)" part of annotation
-    # this treats persons p1,p2 as equal based on their name, not on whether p1.id == p2.id (!)
     persons = set()
     for anno in SearchResultAdapter(container, query).items():
         anno_id = anno.path("body.id")
         logger.trace("person_anno: {}", anno)
         for ref in anno.path("body.metadata.ref"):
-            if not 'persName' in ref:
-                logger.error("Missing 'persName' in {}", anno_id)
-                continue
-            for p in ref['persName']:
-                if p['full'] == 'yes':
-                    if 'forename' in p and 'surname' in p:
-                        persons.add(extract_name(p))
-                    else:
-                        logger.error("Missing 'forename' or 'surname' in {}", anno_id)
+            if 'sortLabel' in ref:
+                name = ref['sortLabel']
+            else:
+                if 'displayLabel' in ref:
+                    logger.warning("Using 'displayLabel' in lieu of 'sortLabel' in {}", anno_id)
+                    name = ref['displayLabel']
+                else:
+                    logger.error("Missing 'sortLabel' and 'displayLabel' in {}", anno_id)
+                    name = 'unknown'
+            persons.add(name)
 
     return persons
 
