@@ -94,12 +94,15 @@ def extract_persons(container: ContainerAdapter, overlap_query: dict[str, Any]) 
         anno_id = anno.path("body.id")
         logger.trace("person_anno: {}", anno)
         for ref in anno.path("body.metadata.ref"):
-            persons.add(extract_name(anno_id, ref))
+            name = extract_name(anno_id, ref)
+            if not name:
+                name = f'unknown (ref: {ref})'
+            persons.add(name)
 
     return persons
 
 
-def extract_name(anno_id: str, ref: dict[str, Any]) -> str:
+def extract_name(anno_id: str, ref: dict[str, Any]) -> str|None:
     if 'sortLabel' in ref:
         return ref['sortLabel']
 
@@ -108,7 +111,7 @@ def extract_name(anno_id: str, ref: dict[str, Any]) -> str:
         return ref['displayLabel']
 
     logger.error("Missing 'sortLabel' and 'displayLabel' in {}", anno_id)
-    return 'unknown'
+    return None
 
 
 def index_views(
