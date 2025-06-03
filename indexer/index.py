@@ -157,30 +157,28 @@ def index_views(
 
         for view in views:
             view_name = f"{view["name"]}Text"
-            for constraint in view["constraints"]:
-                overlap_query[constraint["path"]] = constraint["value"]
-            logger.trace(" - overlap query: {}", overlap_query)
-            overlap_search: SearchResultAdapter = SearchResultAdapter(
-                container, overlap_query
-            )
-            try:
-                overlap_anno = next(overlap_search.items())
-                logger.trace(" - overlap_anno: {}", overlap_anno)
 
+            for constraint in view["constraints"]:
+                overlap_query[constraint["path"]] = {":isIn": constraint["values"]}
+            logger.trace(" - overlap query: {}", overlap_query)
+
+            overlap_search: SearchResultAdapter = SearchResultAdapter(container, overlap_query)
+
+            view_texts = []
+            for overlap_anno in overlap_search.items():
+                logger.trace(" - overlap_anno: {}", overlap_anno)
                 text_target = overlap_anno.first_target_without_selector("LogicalText")
+
                 resp = requests.get(text_target["source"], timeout=5)
                 if resp.status_code != 200:
-                    logger.warning(
-                        "Failed to get text for {}: {}",
-                        overlap_anno.path("body.id"),
-                        resp,
-                    )
+                    logger.warning("Failed to get text for {}: {}", overlap_anno.path("body.id"), resp)
                 else:
-                    view_text = "".join(resp.json())
-                    logger.trace(f" - {view_name}=[{view_text}]")
-                    doc[view_name] = view_text
+                    view_texts.append("".join(resp.json()))
+                    logger.trace(f" - {view_name}={view_texts}")
 
-            except StopIteration:
+            if view_texts:
+                doc[view_name] = view_texts
+            else:
                 logger.warning(f"Empty '{view["name"]}' view")
 
         logger.debug(" - es_doc[{}]: {}", doc_id, doc)

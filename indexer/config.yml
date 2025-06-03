@@ -10,18 +10,18 @@ views:
   - name: original
     constraints:
       - path: "body.type"
-        value: "tei:Div"
+        values: [ "tei:Div" ]
       - path: "body.metadata.tei:type"
-        value: original
+        values: [ original ]
   - name: translated
     constraints:
       - path: "body.type"
-        value: "tei:Div"
+        values: [ "tei:Div" ]
       - path: "body.metadata.tei:type"
-        value: translation
+        values: [ translation ]
   - name: notes
     constraints:
       - path: "body.type"
-        value: "tei:ListAnnotation"
+        values: [ "tei:ListAnnotation" ]
       - path: "body.metadata.tei:type"
-        value: notes
+        values: ["notes", "typednotes", "langnotes"]
