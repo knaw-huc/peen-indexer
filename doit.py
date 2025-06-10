@@ -46,6 +46,7 @@ args = parser.parse_args()
 if args.trace:
     logger.remove()
     logger.add(sys.stderr, level="TRACE")
+    logger.trace("TRACE ENABLED")
 
 with open(args.config, "r", encoding="utf-8") as file:
     main(
