@@ -96,7 +96,7 @@ def extract_persons(container: ContainerAdapter, overlap_query: dict[str, Any]) 
         for ref in anno.path("body.metadata.ref"):
             name = extract_name(anno_id, ref)
             if not name:
-                name = f'unknown (ref: {ref})'
+                name = f'unknown: {ref}'
             persons.add(name)
 
     return persons
