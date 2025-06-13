@@ -28,6 +28,9 @@
       "sender": {
         "type": "keyword"
       },
+      "type": {
+        "type": "keyword"
+      },
       "originalText": {
         "type": "text",
         "fields": {
