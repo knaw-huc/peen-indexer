@@ -20,18 +20,30 @@ fields:
   sender: "body.metadata.sender"
 
 views:
-  - name: original
+  - name: letterOriginal
     constraints:
       - path: "body.type"
         values: [ "tei:Div" ]
       - path: "body.metadata.tei:type"
-        values: [ original, "intro-nl" ]
-  - name: translated
+        values: [ original ]
+  - name: letterTranslated
     constraints:
       - path: "body.type"
         values: [ "tei:Div" ]
       - path: "body.metadata.tei:type"
-        values: [ translation, "intro-en" ]
+        values: [ translation ]
+  - name: introOriginal
+    constraints:
+      - path: "body.type
+        values: [ "tei:Div" ]
+      - path: "body.metadata.tei:type"
+        values: [ "intro-nl" ]
+  - name: introTranslated
+    constraints:
+      - path: "body.type
+        values: [ "tei:Div" ]
+      - path: "body.metadata.tei:type"
+        values: [ "intro-en" ]
   - name: notes
     constraints:
       - path: "body.type"

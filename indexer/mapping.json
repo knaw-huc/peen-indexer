@@ -42,7 +42,7 @@
         "index_options": "offsets",
         "analyzer": "fulltext_analyzer"
       },
-      "originalText": {
+      "letterOriginalText": {
         "type": "text",
         "fields": {
           "tokenCount": {
@@ -53,7 +53,29 @@
         "index_options": "offsets",
         "analyzer": "fulltext_analyzer"
       },
-      "translatedText": {
+      "letterTranslatedText": {
+        "type": "text",
+        "fields": {
+          "tokenCount": {
+            "type": "token_count",
+            "analyzer": "fulltext_analyzer"
+          }
+        },
+        "index_options": "offsets",
+        "analyzer": "fulltext_analyzer"
+      },
+      "introOriginalText": {
+        "type": "text",
+        "fields": {
+          "tokenCount": {
+            "type": "token_count",
+            "analyzer": "fulltext_analyzer"
+          }
+        },
+        "index_options": "offsets",
+        "analyzer": "fulltext_analyzer"
+      },
+      "introTranslatedText": {
         "type": "text",
         "fields": {
           "tokenCount": {
