@@ -34,13 +34,13 @@ views:
         values: [ translation ]
   - name: introOriginal
     constraints:
-      - path: "body.type
+      - path: "body.type"
         values: [ "tei:Div" ]
       - path: "body.metadata.tei:type"
         values: [ "intro-nl" ]
   - name: introTranslated
     constraints:
-      - path: "body.type
+      - path: "body.type"
         values: [ "tei:Div" ]
       - path: "body.metadata.tei:type"
         values: [ "intro-en" ]
