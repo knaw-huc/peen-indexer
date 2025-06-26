@@ -31,7 +31,18 @@
       "type": {
         "type": "keyword"
       },
-      "notesText": {
+      "letterNotesText": {
+        "type": "text",
+        "fields": {
+          "tokenCount": {
+            "type": "token_count",
+            "analyzer": "fulltext_analyzer"
+          }
+        },
+        "index_options": "offsets",
+        "analyzer": "fulltext_analyzer"
+      },
+      "introNotesText": {
         "type": "text",
         "fields": {
           "tokenCount": {
