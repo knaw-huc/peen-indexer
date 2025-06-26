@@ -38,15 +38,3 @@ views:
         values: [ "tei:ListAnnotation" ]
       - path: "body.metadata.tei:type"
         values: [ "notes", "typednotes", "langnotes" ]
-  - name: introOriginal
-    constraints:
-      - path: "body.type"
-        values: [ "tei:Div" ]
-      - path: "body.metadata.tei:type"
-        values: [ "notes-nl" ]
-  - name: introTranslated
-    constraints:
-      - path: "body.type"
-        values: [ "tei:Div" ]
-      - path: "body.metadata.tei:type"
-        values: [ "notes-en"]
