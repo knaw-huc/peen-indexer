@@ -74,9 +74,13 @@ def extract_artworks(container: ContainerAdapter, overlap_query: dict[str, Any])
         if type(ref) is list:
             for ref in anno.path("body.metadata.ref"):
                 logger.trace("ref: {}", ref)
-                for h in ref['head']:
-                    lang = h['lang']
-                    artworks[lang].add(h['text'])
+                if 'head' in ref:
+                    head = ref['head']
+                    for lang, text in head.items():
+                        logger.trace(f"adding[{lang}]={text}")
+                        artworks[lang].add(text)
+                else:
+                    logger.warning(f"missing 'head' in {ref}")
         else:
             logger.warning("Missing proper 'ref' in {}: {}", anno, ref)
 
