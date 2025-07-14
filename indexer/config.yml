@@ -24,36 +24,36 @@ views:
   - name: letterOriginal
     constraints:
       - path: "body.type"
-        values: [ "tei:Div" ]
+        values: ["tei:Div"]
       - path: "body.metadata.tei:type"
-        values: [ original ]
+        values: [original]
   - name: letterTranslated
     constraints:
       - path: "body.type"
-        values: [ "tei:Div" ]
+        values: ["tei:Div"]
       - path: "body.metadata.tei:type"
-        values: [ translation ]
+        values: [translation]
   - name: introOriginal
     constraints:
       - path: "body.type"
-        values: [ "tei:Div" ]
+        values: ["tei:Div"]
       - path: "body.metadata.tei:type"
-        values: [ "intro-nl" ]
+        values: ["intro-nl"]
   - name: introTranslated
     constraints:
       - path: "body.type"
-        values: [ "tei:Div" ]
+        values: ["tei:Div"]
       - path: "body.metadata.tei:type"
-        values: [ "intro-en" ]
+        values: ["intro-en"]
   - name: letterNotes
     constraints:
       - path: "body.type"
-        values: [ "tei:ListAnnotation" ]
+        values: ["tei:ListAnnotation"]
       - path: "body.metadata.tei:type"
-        values: [ "notes", "typednotes", "langnotes" ]
+        values: ["notes", "typednotes", "langnotes"]
   - name: introNotes
     constraints:
       - path: "body.type"
-        values: [ "tei:ListAnnotation" ]
+        values: ["tei:ListAnnotation"]
       - path: "body.metadata.tei:type"
-        values: [ "intro-notes" ]
+        values: ["intro-notes"]
