@@ -28,7 +28,10 @@
       "sender": {
         "type": "keyword"
       },
-      "title": {
+      "titleEN": {
+        "type": "keyword"
+      },
+      "titleNL": {
         "type": "keyword"
       },
       "type": {

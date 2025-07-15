@@ -159,6 +159,12 @@ def index_views(
 
             doc = { "type": doc_type }
 
+            title_by_lang = anno.path("body.metadata.title")
+            if title_by_lang:
+                for lang in title_by_lang.keys():
+                    lang_key = f"title{lang.upper()}"
+                    doc[lang_key] = title_by_lang[lang]
+
             for es_field, path in fields.items():
                 v = anno.path(path)
                 if v:

@@ -18,7 +18,6 @@ fields:
   period: "body.metadata.period"
   periodLong: "body.metadata.periodLong"
   sender: "body.metadata.sender"
-  title: "body.metadata.title"
 
 views:
   - name: letterOriginal
