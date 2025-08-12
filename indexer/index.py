@@ -10,6 +10,7 @@ from annorepo.client import AnnoRepoClient, ContainerAdapter
 from elasticsearch import ApiError, Elasticsearch
 from loguru import logger
 
+from indexer.SearchResultItem import SearchResultItem
 from .SearchResultAdapter import SearchResultAdapter
 
 MAPPING_FILE = f"{os.path.dirname(__file__)}/mapping.json"
@@ -121,6 +122,29 @@ def extract_name(anno_id: str, ref: dict[str, Any]) -> str|None:
     return None
 
 
+def contrive_date(anno: SearchResultItem) -> dict[Any, Any] | None:
+    actual = anno.path("body.metadata.dateSent")
+    not_before = anno.path("body.metadata.dateSentNotBefore")
+    not_after = anno.path("body.metadata.dateSentNotAfter")
+
+    date = {}
+    if actual:
+        date["gte"] = actual
+        date["lte"] = actual
+        if not_before:
+            logger.warning("{}: has both actual date AND notBefore!", anno.path("body.id"))
+        if not_after:
+            logger.warning("{}: has both actual date AND notAfter!", anno.path("body.id"))
+    else:
+        if not_before:
+            date["gte"] = not_before
+
+        if not_after:
+            date["lte"] = not_after
+
+    return date if date else None
+
+
 def index_views(
         container: ContainerAdapter,
         elastic: Elasticsearch,
@@ -159,27 +183,40 @@ def index_views(
 
             doc = { "type": doc_type }
 
+            # store dateSent, if any
+            date = contrive_date(anno)
+            if date:
+                logger.info("setting ES doc date to: {}", date)
+                doc['date'] = date
+            else:
+                logger.warning("{}: no dateSent", doc_id)
+
+            # store title by language
             title_by_lang = anno.path("body.metadata.title")
             if title_by_lang:
                 for lang in title_by_lang.keys():
                     lang_key = f"title{lang.upper()}"
                     doc[lang_key] = title_by_lang[lang]
 
+            # store generic fields by path in anno
             for es_field, path in fields.items():
                 v = anno.path(path)
                 if v:
                     doc[es_field] = v
 
+            # store artworks
             artworks = extract_artworks(container, overlap_base_query)
             logger.trace(" - artworks: {}", artworks)
             for lang in artworks.keys():
                 lang_key = f"artworks{lang.upper()}"
                 doc[lang_key] = sorted(artworks[lang])
 
+            # store persons
             persons = extract_persons(container, overlap_base_query)
             logger.trace(" - persons: {}", persons)
             doc['persons'] = sorted(persons)
 
+            # store views
             for view in views:
                 view_name = f"{view["name"]}Text"
 
