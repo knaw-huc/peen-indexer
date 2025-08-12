@@ -15,8 +15,6 @@ fields:
   correspondent: "body.metadata.correspondent"
   file: "body.metadata.file"
   location: "body.metadata.location"
-  period: "body.metadata.period"
-  periodLong: "body.metadata.periodLong"
   sender: "body.metadata.sender"
 
 views:
