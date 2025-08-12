@@ -189,7 +189,8 @@ def index_views(
                 logger.info("setting ES doc date to: {}", date)
                 doc['date'] = date
             else:
-                logger.warning("{}: no dateSent", doc_id)
+                doc['date'] = { "gte": "0001", "lte": "9999"}
+                logger.warning("{}: no dateSent, winging it to {}", doc_id, doc['date'])
 
             # store title by language
             title_by_lang = anno.path("body.metadata.title")
