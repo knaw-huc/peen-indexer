@@ -10,16 +10,14 @@
       "correspondent": {
         "type": "keyword"
       },
+      "date": {
+        "type": "date_range",
+        "format": "yyyy-MM-dd||yyyy-MM||yyyy"
+      },
       "file": {
         "type": "keyword"
       },
       "location": {
-        "type": "keyword"
-      },
-      "period": {
-        "type": "keyword"
-      },
-      "periodLong": {
         "type": "keyword"
       },
       "persons": {
