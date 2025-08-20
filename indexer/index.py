@@ -181,16 +181,22 @@ def index_views(
                 },
             }
 
-            doc = { "type": doc_type }
+            doc = {"type": doc_type, 'dateSortable': "9999", 'date': {"gte": "0001", "lte": "9999"}}
 
             # store dateSent, if any
             date = contrive_date(anno)
             if date:
                 logger.info("setting ES doc date to: {}", date)
                 doc['date'] = date
+                if 'gte' in date:
+                    doc['dateSortable'] = date['gte']
+                elif 'lte' in date:
+                    doc['dateSortable'] = date['lte']
             else:
-                doc['date'] = { "gte": "0001", "lte": "9999"}
-                logger.warning("{}: no dateSent, winging it to {}", doc_id, doc['date'])
+                logger.warning("{}: no dateSent, winging it to {}, [sortable: {}]",
+                               doc_id, doc['date'], doc['dateSortable'])
+
+            logger.info("{}: date: {}, dateSort: {}", doc_id, doc['date'], doc['dateSortable'])
 
             # store title by language
             title_by_lang = anno.path("body.metadata.title")
