@@ -15,6 +15,7 @@ fields:
   correspondent: "body.metadata.correspondent"
   file: "body.metadata.file"
   location: "body.metadata.location"
+  msId: "body.metadata.msId"
   sender: "body.metadata.sender"
 
 views:

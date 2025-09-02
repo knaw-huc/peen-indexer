@@ -21,6 +21,9 @@
       "file": {
         "type": "keyword"
       },
+      "msId": {
+        "type": "keyword"
+      },
       "location": {
         "type": "keyword"
       },
