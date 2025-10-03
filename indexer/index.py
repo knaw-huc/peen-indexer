@@ -279,11 +279,8 @@ def main(
         logger.add(log_file_path)
 
     path = CONFIG_DEFAULT if cfg_path is None else cfg_path
-    try:
-        with open(path, "r", encoding="utf-8") as file:
-            conf = yaml.safe_load(file)
-    except OSError:
-        return -1
+    with open(path, "r", encoding="utf-8") as file:
+        conf = yaml.safe_load(file)
 
     print(f"Indexing {ar_host}/{ar_container} to {es_host}/{es_index}")
     annorepo = AnnoRepoClient(ar_host)
@@ -311,30 +308,26 @@ def cli():
         description="index annorepo container to elastic index"
     )
     parser.add_argument(
-        "--annorepo-host", metavar="path", required=True, help="the AnnoRepo host"
+        "--annorepo-host",  required=True, help="the AnnoRepo host"
     )
     parser.add_argument(
         "--annorepo-container",
-        metavar="path",
         required=True,
         help="the AnnoRepo container on annorepo-host",
     )
     parser.add_argument(
         "--elastic-host",
-        metavar="path",
         required=False,
         default="http://localhost:9200",
         help="the ElasticSearch host name",
     )
     parser.add_argument(
         "--elastic-index",
-        metavar="path",
         required=True,
         help="the ElasticSearch index name",
     )
     parser.add_argument(
         "--config",
-        metavar="path",
         required=False,
         default=CONFIG_DEFAULT,
         help="configuration file",
@@ -359,17 +352,15 @@ def cli():
         logger.trace("TRACE ENABLED")
 
     try:
-        with open(args.config, "r", encoding="utf-8") as file:
-            config = yaml.safe_load(file)
-            status = main(
-                args.annorepo_host,
-                args.annorepo_container,
-                args.elastic_host,
-                args.elastic_index,
-                config,
-                args.progress
-            )
-    except OSError:
+        status = main(
+            args.annorepo_host,
+            args.annorepo_container,
+            args.elastic_host,
+            args.elastic_index,
+            args.config,
+            args.progress
+        )
+    except (OSError, FileNotFoundError):
         status = 1
 
     sys.exit(status)
