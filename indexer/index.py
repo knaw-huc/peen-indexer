@@ -370,7 +370,7 @@ def cli():
                 args.progress
             )
     except OSError:
-        status = -1
+        status = 1
 
     sys.exit(status)
 
