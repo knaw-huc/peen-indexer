@@ -1,5 +1,5 @@
 run:
-	python3 doit.py \
+	peen-indexer \
 		--annorepo-host=https://preview.dev.diginfra.org/annorepo \
 		--annorepo-container=israels \
 		--config ./indexer/config.yml \

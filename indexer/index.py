@@ -2,10 +2,11 @@ import os
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 import requests
 import yaml
+import argparse
 from annorepo.client import AnnoRepoClient, ContainerAdapter
 from elasticsearch import ApiError, Elasticsearch
 from loguru import logger
@@ -265,7 +266,7 @@ def main(
         es_index: str,
         cfg_path=None,
         show_progress: bool = False,
-        log_file_path: str = None,
+        log_file_path: Optional[str] = None,
 ) -> int:
     if not show_progress:
         logger.remove()
@@ -305,10 +306,7 @@ def main(
         views=conf["views"],
     )
 
-
-if __name__ == "__main__":
-    import argparse
-
+def cli():
     parser = argparse.ArgumentParser(
         description="index annorepo container to elastic index"
     )
@@ -347,11 +345,18 @@ if __name__ == "__main__":
         action="store_true",
         help="run indexer with logging in trace mode",
     )
+    parser.add_argument(
+        "--progress",
+        required=False,
+        action="store_true",
+        help="Show progress bar",
+    )
     args = parser.parse_args()
 
     if args.trace:
         logger.remove()
         logger.add(sys.stderr, level="TRACE")
+        logger.trace("TRACE ENABLED")
 
     try:
         with open(args.config, "r", encoding="utf-8") as file:
@@ -362,8 +367,12 @@ if __name__ == "__main__":
                 args.elastic_host,
                 args.elastic_index,
                 config,
+                args.progress
             )
     except OSError:
         status = -1
 
     sys.exit(status)
+
+if __name__ == "__main__":
+    cli()
