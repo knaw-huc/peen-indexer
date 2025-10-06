@@ -351,19 +351,14 @@ def cli():
         logger.add(sys.stderr, level="TRACE")
         logger.trace("TRACE ENABLED")
 
-    try:
-        status = main(
-            args.annorepo_host,
-            args.annorepo_container,
-            args.elastic_host,
-            args.elastic_index,
-            args.config,
-            args.progress
-        )
-    except (OSError, FileNotFoundError):
-        status = 1
-
-    sys.exit(status)
+    status = main(
+        args.annorepo_host,
+        args.annorepo_container,
+        args.elastic_host,
+        args.elastic_index,
+        args.config,
+        args.progress
+    )
 
 if __name__ == "__main__":
     cli()
