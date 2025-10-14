@@ -1,4 +1,3 @@
-topTier: "tf:Letter"
 docs:
   - type: "intro"
     constraints:
@@ -10,6 +9,16 @@ docs:
     constraints:
       - path: "body.type"
         values: ["tf:Letter"]
+
+modules:
+  - fields
+  - id
+  - type
+# - views
+# - artworks
+# - date
+# - persons
+# - title
 
 fields:
   correspondent: "body.metadata.correspondent"

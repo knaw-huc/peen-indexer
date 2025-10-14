@@ -151,6 +151,7 @@ def index_views(
         elastic: Elasticsearch,
         index: str,
         docs,
+        modules: list[str],
         fields: dict[str, str],
         views: dict[str, str],
 ) -> int:
@@ -172,7 +173,7 @@ def index_views(
 
             doc_id = anno.path("body.id")
 
-            target = anno.first_target_with_selector("Text")
+            target = anno.first_target_with_selector("NormalText")
             selector = target["selector"]
             overlap_base_query = {
                 ":overlapsWithTextAnchorRange": {
@@ -182,75 +183,88 @@ def index_views(
                 },
             }
 
-            doc = {"type": doc_type, 'dateSortable': "9999", 'date': {"gte": "0001", "lte": "9999"}}
+            doc = {}
 
-            # store dateSent, if any
-            date = contrive_date(anno)
-            if date:
-                logger.info("setting ES doc date to: {}", date)
-                doc['date'] = date
-                if 'gte' in date:
-                    doc['dateSortable'] = date['gte']
-                elif 'lte' in date:
-                    doc['dateSortable'] = date['lte']
-            else:
-                logger.warning("{}: no dateSent, winging it to {}, [sortable: {}]",
-                               doc_id, doc['date'], doc['dateSortable'])
+            if 'id' in modules:
+                doc['id'] = doc_id
 
-            logger.info("{}: date: {}, dateSort: {}", doc_id, doc['date'], doc['dateSortable'])
+            if 'type' in modules:
+                doc['type'] = doc_type
 
-            # store title by language
-            title_by_lang = anno.path("body.metadata.title")
-            if title_by_lang:
-                for lang in title_by_lang.keys():
-                    lang_key = f"title{lang.upper()}"
-                    doc[lang_key] = title_by_lang[lang]
-
-            # store generic fields by path in anno
-            for es_field, path in fields.items():
-                v = anno.path(path)
-                if v:
-                    doc[es_field] = v
-
-            # store artworks
-            artworks = extract_artworks(container, overlap_base_query)
-            logger.trace(" - artworks: {}", artworks)
-            for lang in artworks.keys():
-                lang_key = f"artworks{lang.upper()}"
-                doc[lang_key] = sorted(artworks[lang])
-
-            # store persons
-            persons = extract_persons(container, overlap_base_query)
-            logger.trace(" - persons: {}", persons)
-            doc['persons'] = sorted(persons)
-
-            # store views
-            for view in views:
-                view_name = f"{view["name"]}Text"
-
-                overlap_query = overlap_base_query.copy()
-                for constraint in view["constraints"]:
-                    overlap_query[constraint["path"]] = {":isIn": constraint["values"]}
-                logger.trace(" - overlap query: {}", overlap_query)
-
-                overlap_search: SearchResultAdapter = SearchResultAdapter(container, overlap_query)
-
-                view_texts = []
-                for overlap_anno in overlap_search.items():
-                    logger.trace(" - overlap_anno: {}", overlap_anno)
-                    text_target = overlap_anno.first_target_without_selector("LogicalText")
-
-                    resp = requests.get(text_target["source"], timeout=5)
-                    if resp.status_code != 200:
-                        logger.warning("Failed to get text for {}: {}", overlap_anno.path("body.id"), resp)
-                    else:
-                        view_texts.append("".join(resp.json()))
-                        logger.trace(f" - {view_name}={view_texts}")
-
-                if view_texts:
-                    doc[view_name] = view_texts
+            if 'date' in modules:
+                doc['dateSortable'] = "9999"
+                doc['date'] = {"gte": "0001", "lte": "9999"}
+                date = contrive_date(anno)
+                if date:
+                    logger.info("setting ES doc date to: {}", date)
+                    doc['date'] = date
+                    if 'gte' in date:
+                        doc['dateSortable'] = date['gte']
+                    elif 'lte' in date:
+                        doc['dateSortable'] = date['lte']
                 else:
-                    logger.warning(f"Empty '{view["name"]}' view")
+                    logger.warning("{}: no dateSent, winging it to {}, [sortable: {}]",
+                                   doc_id, doc['date'], doc['dateSortable'])
+
+                logger.info("{}: date: {}, dateSort: {}", doc_id, doc['date'], doc['dateSortable'])
+
+            if 'title' in modules:
+                # store title by language
+                title_by_lang = anno.path("body.metadata.title")
+                if title_by_lang:
+                    for lang in title_by_lang.keys():
+                        lang_key = f"title{lang.upper()}"
+                        doc[lang_key] = title_by_lang[lang]
+
+            if 'fields' in modules:
+                # store generic fields by path in anno
+                for es_field, path in fields.items():
+                    v = anno.path(path)
+                    if v:
+                        doc[es_field] = v
+
+            if 'artworks' in modules:
+                # store artworks
+                artworks = extract_artworks(container, overlap_base_query)
+                logger.trace(" - artworks: {}", artworks)
+                for lang in artworks.keys():
+                    lang_key = f"artworks{lang.upper()}"
+                    doc[lang_key] = sorted(artworks[lang])
+
+            if 'persons' in modules:
+                # store persons
+                persons = extract_persons(container, overlap_base_query)
+                logger.trace(" - persons: {}", persons)
+                doc['persons'] = sorted(persons)
+
+            if 'views' in modules:
+                # store views
+                for view in views:
+                    view_name = f"{view["name"]}Text"
+
+                    overlap_query = overlap_base_query.copy()
+                    for constraint in view["constraints"]:
+                        overlap_query[constraint["path"]] = {":isIn": constraint["values"]}
+                    logger.trace(" - overlap query: {}", overlap_query)
+
+                    overlap_search: SearchResultAdapter = SearchResultAdapter(container, overlap_query)
+
+                    view_texts = []
+                    for overlap_anno in overlap_search.items():
+                        logger.trace(" - overlap_anno: {}", overlap_anno)
+                        text_target = overlap_anno.first_target_without_selector("LogicalText")
+
+                        resp = requests.get(text_target["source"], timeout=5)
+                        if resp.status_code != 200:
+                            logger.warning("Failed to get text for {}: {}", overlap_anno.path("body.id"), resp)
+                        else:
+                            view_texts.append("".join(resp.json()))
+                            logger.trace(f" - {view_name}={view_texts}")
+
+                    if view_texts:
+                        doc[view_name] = view_texts
+                    else:
+                        logger.warning(f"Empty '{view["name"]}' view")
 
             logger.debug(" - es_doc[{}]: {}", doc_id, doc)
             if store_document(elastic, index, doc_id, doc) < 0:
@@ -299,6 +313,7 @@ def main(
         elastic,
         es_index,
         docs=conf["docs"],
+        modules=conf["modules"],
         fields=conf["fields"],
         views=conf["views"],
     )
