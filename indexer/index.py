@@ -169,7 +169,7 @@ def index_views(
         for anno in top_tier_anno_search.items():
             logger.trace("anno: {}", anno)
 
-            doc_id = anno.path("body.id")
+            doc_id = anno.path("body.identifier")
 
             target = anno.first_target_with_selector("NormalText")
             selector = target["selector"]
@@ -182,9 +182,6 @@ def index_views(
             }
 
             doc = {}
-
-            if 'id' in modules:
-                doc['id'] = doc_id
 
             if 'type' in modules:
                 doc['type'] = doc_type
