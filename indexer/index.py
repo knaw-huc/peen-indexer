@@ -20,44 +20,42 @@ CONFIG_DEFAULT = f"{os.path.dirname(__file__)}/config.yml"
 
 def reset_index(
         elastic: Elasticsearch, index_name: str, path: str | os.PathLike
-) -> int:
+) -> bool:
     if elastic.indices.exists(index=index_name):
-        logger.trace("Deleting ES index {index_name}", index_name=index_name)
+        logger.trace("Deleting previously existing ES index {}", index_name)
         try:
             res = elastic.indices.delete(index=index_name)
             logger.success("Deleted ES index {}: {}", index_name, res)
         except ApiError as err:
             logger.critical(err)
-            return -1
+            return False
 
     mapping_path = Path(path)
-    logger.trace(
-        "Creating ES index {} using mapping file: {}", index_name, mapping_path
-    )
+    logger.trace("Creating ES index {} using mapping file: {}", index_name, mapping_path)
     try:
         res = elastic.indices.create(
-            index=index_name, body=mapping_path.read_text(encoding="utf-8")
+            index=index_name,
+            body=mapping_path.read_text(encoding="utf-8")
         )
-        logger.success("Created ES index {}: {}", index_name, res)
     except ApiError as err:
         logger.critical(err)
-        return -2
+        return False
 
-    return 0
+    logger.success("Created ES index {}: {}", index_name, res)
+    return True
 
 
 def store_document(
         elastic: Elasticsearch, index: str, doc_id: str, doc: dict[str, Any]
-) -> int:
+) -> bool:
     resp = elastic.index(index=index, id=doc_id, document=doc)
     logger.trace(resp)
     if resp["result"] == "created":
         logger.success("Indexed {}", doc_id)
-    else:
-        logger.critical("Indexing {} failed: {}", doc_id, resp)
-        return -1
+        return True
 
-    return 0
+    logger.critical("Indexing {} failed: {}", doc_id, resp)
+    return False
 
 
 def extract_artworks(container: ContainerAdapter, overlap_query: dict[str, Any]) -> dict[str, set[str]]:
@@ -154,7 +152,7 @@ def index_views(
         modules: list[str],
         fields: dict[str, str],
         views: dict[str, str],
-) -> int:
+) -> bool:
     logger.trace("docs: {}", docs)
     for doc_def in docs:
         doc_type = doc_def["type"]
@@ -210,7 +208,7 @@ def index_views(
 
             if 'title' in modules:
                 # store title by language
-                title_by_lang = anno.path("body.metadata.title")
+                title_by_lang = anno.path('body.metadata.title')
                 if title_by_lang:
                     for lang in title_by_lang.keys():
                         lang_key = f"title{lang.upper()}"
@@ -267,10 +265,10 @@ def index_views(
                         logger.warning(f"Empty '{view["name"]}' view")
 
             logger.debug(" - es_doc[{}]: {}", doc_id, doc)
-            if store_document(elastic, index, doc_id, doc) < 0:
-                return -3
+            if  not store_document(elastic, index, doc_id, doc):
+                return False
 
-    return 0
+    return True
 
 
 def main(
@@ -278,10 +276,10 @@ def main(
         ar_container: str,
         es_host: str,
         es_index: str,
-        cfg_path=None,
+        cfg_path: Optional[str] = None,
         show_progress: bool = False,
         log_file_path: Optional[str] = None,
-) -> int:
+) -> None:
     if not show_progress:
         logger.remove()
         logger.add(sys.stdout, level="WARNING")
@@ -304,26 +302,26 @@ def main(
     elastic = Elasticsearch(es_host)
     logger.info("ElasticSearch: {info}", info=elastic.info())
 
-    es_result = reset_index(elastic, es_index, MAPPING_FILE)
-    if es_result != 0:
-        return es_result
+    if reset_index(elastic, es_index, MAPPING_FILE):
+        index_views(
+            container,
+            elastic,
+            es_index,
+            docs=conf["docs"],
+            modules=conf["modules"],
+            fields=conf["fields"],
+            views=conf["views"],
+        )
 
-    return index_views(
-        container,
-        elastic,
-        es_index,
-        docs=conf["docs"],
-        modules=conf["modules"],
-        fields=conf["fields"],
-        views=conf["views"],
-    )
 
 def cli():
     parser = argparse.ArgumentParser(
         description="index annorepo container to elastic index"
     )
     parser.add_argument(
-        "--annorepo-host",  required=True, help="the AnnoRepo host"
+        "--annorepo-host",
+        required=True,
+        help="the AnnoRepo host name"
     )
     parser.add_argument(
         "--annorepo-container",
@@ -357,7 +355,7 @@ def cli():
         "--progress",
         required=False,
         action="store_true",
-        help="Show progress bar",
+        help="Be more verbose",  # rename to '--verbose' ?
     )
     args = parser.parse_args()
 
@@ -366,7 +364,7 @@ def cli():
         logger.add(sys.stderr, level="TRACE")
         logger.trace("TRACE ENABLED")
 
-    status = main(
+    main(
         args.annorepo_host,
         args.annorepo_container,
         args.elastic_host,
