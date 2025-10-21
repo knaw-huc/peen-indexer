@@ -312,7 +312,9 @@ def main(
     elastic = Elasticsearch(es_host)
     logger.info("ElasticSearch: {info}", info=elastic.info())
 
-    if reset_index(elastic, es_index, MAPPING_FILE):
+    mapping_path = conf["mapping"] if 'mapping' in conf else MAPPING_FILE
+
+    if reset_index(elastic, es_index, mapping_path):
         index_views(
             container,
             elastic,

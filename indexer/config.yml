@@ -1,3 +1,5 @@
+mapping: "mapping.json"
+
 docs:
   - type: "intro"
     constraints:
