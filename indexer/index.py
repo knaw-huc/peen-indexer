@@ -237,23 +237,36 @@ def index_views(
                 for view in views:
                     view_name = f"{view["name"]}Text"
 
-                    overlap_query = overlap_base_query.copy()
-                    for constraint in view["constraints"]:
-                        overlap_query[constraint["path"]] = {":isIn": constraint["values"]}
-                    logger.trace(" - overlap query: {}", overlap_query)
+                    if 'constraints' in view:
+                        overlap_query = overlap_base_query.copy()
+                        for constraint in view["constraints"]:
+                            overlap_query[constraint["path"]] = {":isIn": constraint["values"]}
+                        logger.trace(" - overlap query: {}", overlap_query)
 
-                    overlap_search: SearchResultAdapter = SearchResultAdapter(container, overlap_query)
+                        overlap_search: SearchResultAdapter = SearchResultAdapter(container, overlap_query)
 
-                    view_texts = []
-                    for overlap_anno in overlap_search.items():
-                        logger.trace(" - overlap_anno: {}", overlap_anno)
-                        text_target = overlap_anno.first_target_without_selector("LogicalText")
+                        view_texts = []
+                        for overlap_anno in overlap_search.items():
+                            logger.trace(" - overlap_anno: {}", overlap_anno)
+                            text_target = overlap_anno.first_target_without_selector("NormalText")
 
-                        resp = requests.get(text_target["source"], timeout=5)
+                            resp = requests.get(text_target["source"], timeout=5)
+                            if resp.status_code != 200:
+                                logger.warning("Failed to get text for {}: {}",
+                                               overlap_anno.path("body.identifier"),
+                                               resp)
+                            else:
+                                view_texts.append("".join(resp.json()))
+                                logger.trace(f" - {view_name}={view_texts}")
+                    else:
+                        text_target = anno.first_target_without_selector('NormalText')
+                        logger.trace("text_target: {}", text_target)
+                        logger.trace("source: {}", text_target['source'])
+                        resp = requests.get(text_target['source'], timeout=5)
                         if resp.status_code != 200:
-                            logger.warning("Failed to get text for {}: {}", overlap_anno.path("body.id"), resp)
+                            logger.warning("Failed to get text for {}: {}", doc_id, resp)
                         else:
-                            view_texts.append("".join(resp.json()))
+                            view_texts = "".join(resp.json())
                             logger.trace(f" - {view_name}={view_texts}")
 
                     if view_texts:
