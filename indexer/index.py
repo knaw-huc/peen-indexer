@@ -256,7 +256,7 @@ def index_views(
                                                overlap_anno.path("body.identifier"),
                                                resp)
                             else:
-                                view_texts.append("".join(resp.json()))
+                                view_texts.append(resp.text)
                                 logger.trace(f" - {view_name}={view_texts}")
                     else:
                         text_target = anno.first_target_without_selector('NormalText')
@@ -266,7 +266,7 @@ def index_views(
                         if resp.status_code != 200:
                             logger.warning("Failed to get text for {}: {}", doc_id, resp)
                         else:
-                            view_texts = "".join(resp.json())
+                            view_texts = resp.text
                             logger.trace(f" - {view_name}={view_texts}")
 
                     if view_texts:
