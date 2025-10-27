@@ -169,7 +169,7 @@ def index_views(
         for anno in top_tier_anno_search.items():
             logger.trace("anno: {}", anno)
 
-            doc_id = anno.path("body.identifier")
+            doc_id = anno.path("body.id")
 
             target = anno.first_target_with_selector("NormalText")
             selector = target["selector"]
@@ -237,6 +237,7 @@ def index_views(
                 for view in views:
                     view_name = f"{view["name"]}Text"
 
+                    view_texts = None
                     if 'constraints' in view:
                         overlap_query = overlap_base_query.copy()
                         for constraint in view["constraints"]:
@@ -253,7 +254,7 @@ def index_views(
                             resp = requests.get(text_target["source"], timeout=5)
                             if resp.status_code != 200:
                                 logger.warning("Failed to get text for {}: {}",
-                                               overlap_anno.path("body.identifier"),
+                                               overlap_anno.path("body.id"),
                                                resp)
                             else:
                                 view_texts.append(resp.text)
