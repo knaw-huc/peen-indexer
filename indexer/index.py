@@ -62,17 +62,17 @@ def extract_artworks(container: ContainerAdapter, overlap_query: dict[str, Any])
     # fetch overlapping Rs[type=artwork] annotations
     query = overlap_query.copy()
     query.update({
-        "body.type": "tei:Rs",
-        "body.metadata.tei:type": "artwork"
+        "body.type": "Entity",
+        "body.tei:type": "artwork"
     })
     logger.trace("artworks query: {}", query)
 
     artworks = defaultdict(set)
     for anno in SearchResultAdapter(container, query).items():
         logger.trace("artwork_anno: {}", anno)
-        ref = anno.path("body.metadata.ref")
+        ref = anno.path("body.ref")
         if type(ref) is list:
-            for ref in anno.path("body.metadata.ref"):
+            for ref in anno.path("body.ref"):
                 logger.trace("ref: {}", ref)
                 if 'head' in ref:
                     head = ref['head']
@@ -91,8 +91,8 @@ def extract_persons(container: ContainerAdapter, overlap_query: dict[str, Any]) 
     # construct query to fetch overlapping person annotations
     query = overlap_query.copy()
     query.update({
-        "body.type": "tei:Rs",
-        "body.metadata.tei:type": "person"
+        "body.type": "Entity",
+        "body.tei:type": "person"
     })
     logger.trace("persons query: {}", query)
 
@@ -100,7 +100,7 @@ def extract_persons(container: ContainerAdapter, overlap_query: dict[str, Any]) 
     for anno in SearchResultAdapter(container, query).items():
         anno_id = anno.path("body.id")
         logger.trace("person_anno: {}", anno)
-        for ref in anno.path("body.metadata.ref"):
+        for ref in anno.path("body.ref"):
             name = extract_name(anno_id, ref)
             if not name:
                 name = f'unknown: {ref}'
@@ -122,9 +122,9 @@ def extract_name(anno_id: str, ref: dict[str, Any]) -> str|None:
 
 
 def contrive_date(anno: SearchResultItem) -> dict[Any, Any] | None:
-    actual = anno.path("body.metadata.dateSent")
-    not_before = anno.path("body.metadata.dateSentNotBefore")
-    not_after = anno.path("body.metadata.dateSentNotAfter")
+    actual = anno.path("body.dateSent")
+    not_before = anno.path("body.dateSentNotBefore")
+    not_after = anno.path("body.dateSentNotAfter")
 
     date = {}
     if actual:
@@ -205,7 +205,7 @@ def index_views(
 
             if 'title' in modules:
                 # store title by language
-                title_by_lang = anno.path('body.metadata.title')
+                title_by_lang = anno.path('body.title')
                 if title_by_lang:
                     for lang in title_by_lang.keys():
                         lang_key = f"title{lang.upper()}"
