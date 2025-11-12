@@ -206,7 +206,7 @@ def index_views(
 
             if 'title' in modules:
                 # store title by language
-                title_by_lang = anno.path('body.title')
+                title_by_lang = anno.path('body.titles')
                 if title_by_lang:
                     for lang in title_by_lang.keys():
                         lang_key = f"title{lang.upper()}"
