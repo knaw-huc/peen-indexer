@@ -70,19 +70,15 @@ def extract_artworks(container: ContainerAdapter, overlap_query: dict[str, Any])
     artworks = defaultdict(set)
     for anno in SearchResultAdapter(container, query).items():
         logger.trace("artwork_anno: {}", anno)
-        ref = anno.path("body.ref")
-        if type(ref) is list:
-            for ref in anno.path("body.ref"):
-                logger.trace("ref: {}", ref)
-                if 'head' in ref:
-                    head = ref['head']
-                    for lang, text in head.items():
-                        logger.trace(f"adding[{lang}]={text}")
-                        artworks[lang].add(text)
-                else:
-                    logger.warning(f"missing 'head' in {ref}")
-        else:
-            logger.warning("Missing proper 'ref' in {}: {}", anno, ref)
+        refs = anno.path("body.tei:ref")
+        for ref in refs if type(refs) is list else [refs]:
+            if 'head' in ref:
+                head = ref['head']
+                for lang, text in head.items():
+                    logger.trace(f"adding[{lang}]={text}")
+                    artworks[lang].add(text)
+            else:
+                logger.warning(f"missing 'head' in {ref}")
 
     return artworks
 
