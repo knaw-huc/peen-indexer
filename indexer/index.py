@@ -100,7 +100,8 @@ def extract_persons(container: ContainerAdapter, overlap_query: dict[str, Any]) 
     for anno in SearchResultAdapter(container, query).items():
         anno_id = anno.path("body.id")
         logger.trace("person_anno: {}", anno)
-        for ref in anno.path("body.ref"):
+        refs = anno.path("body.tei:ref")
+        for ref in refs if type(refs) is list else [refs]:
             name = extract_name(anno_id, ref)
             if not name:
                 name = f'unknown: {ref}'
