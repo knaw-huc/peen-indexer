@@ -118,6 +118,30 @@ def extract_artworks(
     return artwork_ids, artworks
 
 
+def extract_bible_refs(
+        container: ContainerAdapter, overlap_query: dict[str, Any]
+) -> (set[str], set[str]):
+    query = overlap_query.copy()
+    query.update({"body.type": "Reference"})
+    logger.trace("bibleRefs query: {}", query)
+
+    bible_refs = set()
+    bible_ref_ids = set()
+
+    for anno in SearchResultAdapter(container, query).items():
+        ref_id = anno.path("body.tei:cRef")
+        if ref_id:
+            logger.trace("bible_ref_anno: {}", anno)
+            bible_ref_ids.add(ref_id)
+            label = anno.path("body.label")
+            if label:
+                bible_refs.add(label)
+            else:
+                logger.warning(f"missing 'body.label' in {anno}")
+
+    return bible_ref_ids, bible_refs
+
+
 def extract_persons(
     container: ContainerAdapter, overlap_query: dict[str, Any]
 ) -> (set[str], set[str]):
@@ -283,6 +307,14 @@ def index_views(
                     doc["personIds"] = sorted(person_ids)
                 logger.trace(" - persons: {}", persons)
                 doc["persons"] = sorted(persons)
+
+            if "bibleRefs" in modules:
+                ref_ids, refs = extract_bible_refs(container, overlap_base_query)
+                logger.trace(" - ref_ids: {}", ref_ids)
+                if ref_ids:
+                    doc["bibleRefIds"] = sorted(ref_ids)
+                logger.trace(" - refs: {}", refs)
+                doc["bibleRefs"] = sorted(refs)
 
             if "views" in modules:
                 # store views
